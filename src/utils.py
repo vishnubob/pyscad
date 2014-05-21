@@ -5,7 +5,49 @@ import json
 import os
 from solid import *
 import logging
+import operator
+
 logger = logging.getLogger(__name__)
+
+python = new_openscad_class_str("polyhedron", [], ["faces", "triangles", "points"])
+exec python
+
+def subtract_vector(v1, v2):
+    return [operator.sub(*args) for args in zip(v1, v2)]
+
+def tetrahedron(height, center=False):
+    edge = height / math.sqrt(2.0/3.0)
+    points = [
+        [0, 0, 0],
+        [math.cos(math.radians(15)) * edge, math.sin(math.radians(15)) * edge, 0],
+        [math.cos(math.radians(75)) * edge, math.sin(math.radians(75)) * edge, 0],
+        [height / 2.0, height / 2.0, height],
+    ]
+    faces = [[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]]
+    if center:
+        cv = (height / 2.0, height / 2.0, height / 2.0)
+        points = [subtract_vector(vv, cv) for vv in points]
+    return polyhedron(points=list(points), faces=list(faces))
+
+def pyramid(name, height, width=None, depth=None, center=False):
+    if width == None:
+        width = height
+    if depth == None:
+        depth = width
+    msg = "Pyramid [%s]: height=%.4f width=%.4f, depth: %.4f" % (name, height, width, depth)
+    logger.debug(msg)
+    points = [
+        [0, 0, 0],
+        [width, depth, 0],
+        [width, 0, 0],
+        [0, depth, 0],
+        [width / 2, depth / 2, height],
+    ]
+    faces = [[0, 2, 1], [0, 1, 3], [2, 0, 4], [0, 3, 4], [3, 1, 4], [1, 2, 4]]
+    if center:
+        cv = (height / 2, width / 2, depth / 2)
+        points = [subtract_vector(vv, cv) for vv in points]
+    return polyhedron(points=list(points), faces=list(faces))
 
 def tube(name, height, outer_dia, inner_dia, segments=None):
     msg = "Tube [%s]: Dia: inner=%.4f outer=%.4f, Height: %.4f" % (name, inner_dia, outer_dia, height)

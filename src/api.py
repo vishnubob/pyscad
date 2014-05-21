@@ -10,25 +10,26 @@ class BaseObject(dict):
     def __getattr__(self, key):
         if key in self and self[key] != None:
             return self[key]
-        return super(RockitObject, self).__getattribute__(key)
+        return super(BaseObject, self).__getattribute__(key)
 
     def __setattr__(self, key, val):
         if key in self:
             self[key] = val
             return
-        super(RockitObject, self).__setattr__(key, val)
+        super(BaseObject, self).__setattr__(key, val)
 
 class RootObject(BaseObject):
     def __init__(self, **conf):
-        parts = {part.name: part(self, **conf.get(part.name, {})) for part in scan_parts()}
-        self.parts = parts
+        self._parts = []
         _dct = {}
         _dct["name"] = conf.get("name", "root")
         _dct["build"] = conf.get("build", [])
         if "all" in _dct["build"]:
             _dct["build"] = parts.keys()
-        _dct.update(parts)
-        super(Rockit, self).__init__(**_dct)
+        super(RootObject, self).__init__(**_dct)
+
+    def register_part(self, part):
+        self._parts.append(part)
 
     def override(self, config):
         for (key, val) in config.items():
@@ -47,6 +48,7 @@ class Part(BaseObject):
 
     def __init__(self, root, **kw):
         self.root = root
+        self.root.register_part(self)
         _dct = self.Defaults.copy()
         _dct.update(kw)
         super(Part, self).__init__(**_dct)
