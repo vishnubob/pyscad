@@ -3,14 +3,10 @@
 import math
 import json
 import os
-from solid import *
 import logging
 import operator
 
 logger = logging.getLogger(__name__)
-
-python = new_openscad_class_str("polyhedron", [], ["faces", "triangles", "points"])
-exec python
 
 def subtract_vector(v1, v2):
     return [operator.sub(*args) for args in zip(v1, v2)]
