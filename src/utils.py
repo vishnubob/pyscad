@@ -15,26 +15,32 @@ exec python
 def subtract_vector(v1, v2):
     return [operator.sub(*args) for args in zip(v1, v2)]
 
-def tetrahedron(height, center=False):
-    edge = height / math.sqrt(2.0/3.0)
+def tetrahedron(height=None, edge=None, center=False):
+    height = height or 1
+    if edge:
+        height = edge * math.sqrt(2.0 / 3.0)
+    else:
+        edge = height / math.sqrt(2.0 / 3.0)
+    eq_height = edge * (math.sqrt(3.0) / 2.0)
+
     points = [
         [0, 0, 0],
-        [math.cos(math.radians(15)) * edge, math.sin(math.radians(15)) * edge, 0],
-        [math.cos(math.radians(75)) * edge, math.sin(math.radians(75)) * edge, 0],
-        [height / 2.0, height / 2.0, height],
+        [edge, 0, 0],
+        [edge / 2.0, eq_height, 0],
+        [edge / 2.0, eq_height / 3.0, height],
     ]
     faces = [[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]]
+    center = True
     if center:
-        cv = (height / 2.0, height / 2.0, height / 2.0)
+        cv = (edge / 2.0, eq_height / 3.0, height / 2.0)
         points = [subtract_vector(vv, cv) for vv in points]
     return polyhedron(points=list(points), faces=list(faces))
 
-def pyramid(name, height, width=None, depth=None, center=False):
+def pyramid(height, width=None, depth=None, center=False):
     if width == None:
         width = height
     if depth == None:
         depth = width
-    msg = "Pyramid [%s]: height=%.4f width=%.4f, depth: %.4f" % (name, height, width, depth)
     logger.debug(msg)
     points = [
         [0, 0, 0],
