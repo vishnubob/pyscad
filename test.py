@@ -183,7 +183,16 @@ class TestGeometry(unittest.TestCase):
         self.assertEquals(tet.h, 1.0)
         scad = tet.render_scad()
         answer = "polyhedron(points=[[-0.6123724356957945, -0.35355339059327373, -0.5], [0.6123724356957945, -0.35355339059327373, -0.5], [0.0, 0.7071067811865475, -0.5], [0.0, 0.0, 0.5]], faces=[[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [0.0, 2.0, 3.0], [2.0, 1.0, 3.0]]);"
-        self.assertEquals(tet.render_scad().strip(), answer)
+        self.assertEquals(scad.strip(), answer)
+
+    def _test_octohedron(self):
+        Octohedron()
+        octo = Octohedron(h=1, center=True)
+        self.assertEquals(octo.h, 1.0)
+        scad = octo.render_scad()
+        scad = octo.render()
+        answer = ""
+        self.assertEquals(scad.strip(), answer)
 
 class TestOpenSCAD(unittest.TestCase):
     def setUp(self):

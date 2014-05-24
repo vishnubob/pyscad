@@ -8,36 +8,57 @@ __all__ = ["SCAD_Object"]
 
 class BaseObjectMetaclass(type):
     def __new__(cls, name, bases, ns):
-        def mro_walk(name, bases):
-            dct = {}
-            map(lambda _cls: dct.update(getattr(_cls, name, {})), bases)
-            return dct
-
         ns["Defaults"] = ns.get("Defaults", {})
-        ns["Defaults"].update(mro_walk("Defaults", bases))
+        ns["Defaults"].update(cls.mro_walk("Defaults", bases))
         ns["Aliases"] = ns.get("Aliases", {})
-        ns["Aliases"].update(mro_walk("Aliases", bases))
+        ns["Aliases"].update(cls.mro_walk("Aliases", bases))
+        ns["AliasMap"] = ns.get("AliasMap", {})
+        ns["AliasMap"].update(cls.mro_walk("AliasMap", bases))
         ns["Resserved"] = ns.get("Reserved", {})
-        ns["Resserved"].update(mro_walk("Reserved", bases))
+        ns["Resserved"].update(cls.mro_walk("Reserved", bases))
+        # sync Aliases and AliasMap
+        for key in ns["AliasMap"]:
+            for alias in ns["AliasMap"][key]:
+                if alias not in ns["Aliases"]:
+                    ns["Aliases"][alias] = key
+        ns["AliasMap"].clear()
+        for (alias, key) in ns["Aliases"].items():
+            ns["AliasMap"][key] = ns["AliasMap"].get(key, ()) + (alias,)
+        # add automatic properties
         for key in ns["Defaults"]:
             if key in ns:
                 continue
-            def fget(self, attr=key):
-                return self[attr]
-            def fset(self, value, attr=key):
-                cast = self.Defaults[attr].get("cast", True)
-                default_type = self.Defaults[attr]["type"]
-                if cast and type(value) != default_type:
-                    # cast variable to proper type
-                    castfunc = cast if type(cast) == types.FunctionType else default_type
-                    try:
-                        value = castfunc(value)
-                    except TypeError:
-                        msg = "Attribute '%s' must be castable to a %s, and can not be a %s" % (attr, default_type, type(value))
-                        raise TypeError, msg
-                self[attr] = value
-            ns[key] = property(fget, fset)
-        return type.__new__(cls, name, bases, ns)
+            cls.property_hook(name, bases, ns, key)
+        newtype = cls.new_hook(name, bases, ns)
+        return type.__new__(*newtype)
+
+    @classmethod
+    def mro_walk(cls, name, bases):
+        dct = {}
+        map(lambda _cls: dct.update(getattr(_cls, name, {})), bases)
+        return dct
+
+    @classmethod
+    def property_hook(cls, name, bases, ns, key):
+        def fget(self, attr=key):
+            return self[attr]
+        def fset(self, value, attr=key):
+            cast = self.Defaults[attr].get("cast", True)
+            default_type = self.Defaults[attr]["type"]
+            if cast and type(value) != default_type:
+                # cast variable to proper type
+                castfunc = cast if type(cast) == types.FunctionType else default_type
+                try:
+                    value = castfunc(value)
+                except TypeError:
+                    msg = "Attribute '%s' must be castable to a %s, and can not be a %s" % (attr, default_type, type(value))
+                    raise TypeError, msg
+            self[attr] = value
+        ns[key] = property(fget, fset)
+
+    @classmethod
+    def new_hook(cls, name, bases, ns):
+        return (cls, name, bases, ns)
 
 class BaseObject(object):
     __metaclass__ = BaseObjectMetaclass

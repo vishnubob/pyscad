@@ -3,7 +3,7 @@ import sys
 import tempfile
 import logging
 from utils import which
-from base import BaseObject
+from base import BaseObject, BaseObjectMetaclass
 from vector import *
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,40 @@ __all__ = [
     "OpenSCAD",
 ]
 
+class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
+    GlobalAliases = {
+        'red': ('r', 'R'),
+        'green': ('g', 'G'),
+        'blue': ('b', 'B'),
+        'alpha': ('a', 'A'),
+        'height': ('h', 'H'),
+        'radius': ('r', 'R'),
+        'radius_1': ('r', 'R', 'r1', 'R1'),
+        'radius_2': ('r2', 'R2'),
+        'diameter': ('d', 'D', 'dia'),
+        'diameter_1': ('d', 'D', 'dia', 'd1', 'D1', 'dia1'),
+        'diameter_2': ('d2', 'D2', 'dia2'),
+    }
+
+    @classmethod
+    def new_hook(cls, name, bases, ns):
+        for key in ns["Defaults"].keys() + ns.keys():
+            for alias in cls.GlobalAliases.get(key, ()):
+                if alias not in ns["Aliases"]:
+                    ns["Aliases"][alias] = key
+        changed = 1
+        while changed:
+            changed = 0
+            for (alias, key) in ns["Aliases"].items():
+                for global_alias in cls.GlobalAliases.get(alias, ()):
+                    if global_alias not in ns["Aliases"]:
+                        ns["Aliases"][global_alias] = key
+                        changed = 1
+        return (cls, name, bases, ns)
+
 class SCAD_Object(BaseObject):
+    __metaclass__ = SCAD_BaseObjectMetaclass
+
     def render_scad(self, *args, **kw):
         pass
     def render(self, *args, **kw):
@@ -74,27 +107,19 @@ class Vector3D_SCAD_Primitive(SCAD_Primitive):
     def get_scad_args(self):
         return [self.vector]
 
-class OpenSCAD_Camera(BaseObject):
+class OpenSCAD_Camera(SCAD_Primitive):
     Defaults = {
         "v1": {"type": Vector3D, "default": None},
         "v2": {"type": Vector3D, "default": None},
         "distance": {"type": int, "default": None},
     }
-    Aliases = {
-        'eye': 'v1',
-        'e': 'v1',
-        'translate': 'v1',
-        't': 'v1',
-        'rotation': 'v2',
-        'rot': 'v2',
-        'r': 'v2',
-        'center': 'v2',
-        'c': 'v2',
-        'd': 'distance',
+    AliasMap = {
+        'v1': ('eye', 'e', 'translate', 't'),
+        'v2': ('rotation', 'rot', 'r', 'center', 'c'),
+        'distance': ('distance',)
     }
 
-
-class OpenSCAD(BaseObject):
+class OpenSCAD(SCAD_Primitive):
     Defaults = {
         "_command": {"type": str, "default": None, "cast": False},
         "output": {"type": str, "default": None, "cast": False},
@@ -214,9 +239,6 @@ class OpenSCAD(BaseObject):
         finally:
             self.pop()
 
-def render(scene, **kw):
-    OpenSCAD(**kw).render(scene)
-
 class RadialResolution(SCAD_Primitive):
     Defaults = {
         "fn": {"type": float, "default": None},
@@ -234,4 +256,7 @@ class RadialResolution(SCAD_Primitive):
             if self.fs:
                 ret.append(("$fs", self.fs))
         return ret
+
+def render(scene, **kw):
+    OpenSCAD(**kw).render(scene)
 

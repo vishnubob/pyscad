@@ -11,23 +11,10 @@ class Color(SCAD_Primitive):
     SCAD_Name = "color"
 
     Aliases = {
-        # red
         'red': '_color.r',
-        'r': '_color.r',
-        'R': '_color.r',
-        # green
         'green': '_color.g',
-        'g': '_color.g',
-        'G': '_color.g',
-        # blue
         'blue': '_color.b',
-        'b': '_color.b',
-        'B': '_color.b',
-        # alpha
         'alpha': '_color.a',
-        'a': '_color.a',
-        'A': '_color.a',
-        # color
         'colorname': '_color.colorname',
         'color': '_color',
     }
@@ -123,15 +110,6 @@ class Cylinder(SCAD_Primitive):
         'fn': 'resolution.fn',
         'fa': 'resolution.fa',
         'fs': 'resolution.fs',
-        'radius': 'radius_1',
-        'r': 'radius_1',
-        'r1': 'radius_1',
-        'r2': 'radius_2',
-        'diameter': 'diameter_1',
-        'd': 'diameter_1',
-        'd1': 'diameter_1',
-        'd2': 'diameter_2',
-        'h': 'height',
     }
     Defaults = {
         "radius_1": {"type": float, "default": 1.0},
@@ -171,8 +149,6 @@ class Sphere(SCAD_Primitive):
         'fn': 'resolution.fn',
         'fa': 'resolution.fa',
         'fs': 'resolution.fs',
-        'r': 'radius',
-        'd': 'diameter',
     }
     Defaults = {
         "radius": {"type": float, "default": 1.0},

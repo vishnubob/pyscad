@@ -5,6 +5,51 @@ import math
 import inspect
 import sys
 
+class Octohedron(SCAD_Object):
+    Defaults = {
+        "height": {"type": float, "default": 1.0},
+        "center": {"type": bool, "default": False},
+    }
+    Aliases = {
+        'h': "height",
+        'e': "edge",
+    }
+    def get_edge(self):
+        return self.height / (math.sqrt(3.0) / 2.0)
+    def set_edge(self, edge):
+        self.height = edge * (math.sqrt(3.0) / 3.0)
+    edge = property(get_edge, set_edge)
+
+    @property
+    def points(self):
+        return ListVector3D([
+            [0, self.triangle_height - (self.triangle_height / 3.0), self.height],
+            [self.edge, self.triangle_height - (self.triangle_height / 3.0), self.height],
+            [self.edge / 2.0,  -(self.triangle_height / 3.0), self.height],
+            [0, 0, 0], 
+            [self.edge, 0, 0], 
+            [self.edge / 2.0, self.triangle_height, 0] 
+        ])
+        if self.center:
+            cv = (self.edge / 2.0, self.triangle_height / 3.0, self.height / 2.0)
+            points = [subtract_vector(vv, cv) for vv in points]
+        return points
+
+    @property
+    def faces(self):
+        return ListVector3D([
+            [1, 2, 0], [2, 3, 0], [3, 5, 0],
+            [4, 2, 1], [5, 1, 0], [3, 2, 4],
+            [1, 5, 4], [4, 5, 3],
+        ])
+
+    @property
+    def triangle_height(self):
+        return self.edge * (math.sqrt(3.0) / 2.0)
+
+    def render_scad(self):
+        return Polyhedron(points=list(self.points), faces=list(self.faces))
+
 class Tetrahedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
