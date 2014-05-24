@@ -4,7 +4,7 @@ from scad.base import BaseObject
 
 def check_vector(vector, **answers):
     for (key, value) in answers.items():
-        assert getattr(vector, key) == value
+        assert getattr(vector, key) == value, "%s != %s" % (getattr(vector, key), value)
 
 class TestBase(unittest.TestCase):
     def setUp(self):

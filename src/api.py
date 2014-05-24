@@ -1,40 +1,41 @@
+from color import *
 from scad import *
 from vector import *
 import logging
+import inspect
+import sys
 
-__all__ = [
-    "Cube",
-    "Union",
-    "Cylinder",
-]
-
+_current_module = sys.modules[__name__]
 logger = logging.getLogger(__name__)
 
 class Color(SCAD_Primitive):
     SCAD_Name = "color"
 
     Aliases = {
-        'r': 'color.r',
-        'R': 'color.r',
-        'red': 'color.r',
-        'b': 'color.g',
-        'B': 'color.g',
-        'green': 'color.g',
-        'b': 'color.b',
-        'B': 'color.b',
-        'blue': 'color.b',
-        'a': 'color.a',
-        'A': 'color.a',
-        'alpha': 'color.a',
+        # red
+        'red': '_color.r',
+        'r': '_color.r',
+        'R': '_color.r',
+        # green
+        'green': '_color.g',
+        'g': '_color.g',
+        'G': '_color.g',
+        # blue
+        'blue': '_color.b',
+        'b': '_color.b',
+        'B': '_color.b',
+        # alpha
+        'alpha': '_color.a',
+        'a': '_color.a',
+        'A': '_color.a',
+        # color
+        'color': '_color.color',
     }
     Defaults = {
-        "color": {"type": VectorColor, "default": lambda: VectorColor()},
+        "_color": {"type": VectorColor, "default": lambda: VectorColor()},
     }
-    def get_color(self):
-        return self["color"]
-    def set_color(self, color):
-        self["color"].color = color
-    color = property(get_color, set_color)
+    def process_args(self, args):
+        return VectorColor(args).namespace
 
 class Union(SCAD_Primitive):
     SCAD_Name = "union"
@@ -82,24 +83,6 @@ class Cube(SCAD_Primitive):
         ret = {}
         if args:
             ret["size"] = args[0] if (len(args) == 1) else args
-        return ret
-
-class RadialResolution(SCAD_Primitive):
-    Defaults = {
-        "fn": {"type": float, "default": None},
-        "fs": {"type": float, "default": None},
-        "fa": {"type": float, "default": None},
-    }
-
-    def get_scad_args(self):
-        ret = []
-        if self.fn:
-            ret.append(("$fn", self.fn))
-        else:
-            if self.fa:
-                ret.append(("$fa", self.fa))
-            if self.fs:
-                ret.append(("$fs", self.fs))
         return ret
 
 class Cylinder(SCAD_Primitive):
@@ -150,11 +133,36 @@ class Cylinder(SCAD_Primitive):
         self.radius_2 = dia / 2.0
     diameter_2 = property(get_diamater_2, set_diamater_2)
 
-    def get_resolution(self):
-        if self["resolution"] == None:
-            self["resolution"] = RadialResolution()
-        return self["resolution"]
-    
-    def set_resolution(self, val):
-        self["resolution"] = val
-    resolution = property(get_resolution, set_resolution)
+class Sphere(SCAD_Primitive):
+    SCAD_Name = "sphere"
+    Aliases = {
+        'fn': 'resolution.fn',
+        'fa': 'resolution.fa',
+        'fs': 'resolution.fs',
+        'r': 'radius',
+        'd': 'diameter',
+    }
+    Defaults = {
+        "radius": {"type": float, "default": 1.0},
+        "center": {"type": bool, "default": False},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
+    }
+
+    def get_scad_args(self):
+        scad = []
+        scad.append(("r", self.radius))
+        scad.append(("center", self.center))
+        scad += self.resolution.get_scad_args()
+        return scad
+
+    def get_diamater(self):
+        return self.radius * 2
+    def set_diamater(self, dia):
+        self.radius = dia / 2.0
+    diameter = property(get_diamater, set_diamater)
+
+#
+# auto generate __all__
+#
+
+__all__ = [name for (name, obj) in globals().items() if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Primitive)]

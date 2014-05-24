@@ -194,26 +194,26 @@ def get_part(name):
             return part
     raise KeyError, "Unknown rocket part: %s" % name
 
-# http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-def which(program):
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
 # http://stackoverflow.com/questions/1724693/find-a-file-in-python
 def find(name, path):
     for root, dirs, files in os.walk(path):
         if name in files:
             return os.path.join(root, name)
+
+def which(program):
+    def is_qualified_exe(fpath):
+        return len(os.path.split(fpath)[0]) and os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    if is_qualified_exe(program):
+        return program
+    if sys.platform == "darwin":
+        bg1 = "/Applications/%s/%s.app/Contents/MacOS/%s" % (program, program, program)
+        bg2 = "/Applications/%s.app/Contents/MacOS/%s" % (program, program)
+        for best_guess in (bg1, bg2):
+            if is_qualified_exe(best_guess):
+                return best_guess
+    for path in os.environ["PATH"].split(os.pathsep):
+        path = path.strip('"')
+        best_guess = os.path.join(path, program)
+        if is_qualified_exe(best_guess):
+            return best_guess
+    return None
