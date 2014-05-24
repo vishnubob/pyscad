@@ -16,11 +16,9 @@ class BaseVector(BaseObject):
     Defaults = {}
     Aliases = {}
 
-    def process_args(self, args):
-        if args and (len(args) == 1) and (type(args[0]) in (list, tuple)):
-            args = args[0]
-        ret = {self.Axes[idx]: val for (idx, val) in enumerate(args)}
-        return ret
+    def __init__(self, args=(), **kw):
+        kw.update({self.Axes[idx]: val for (idx, val) in enumerate(args)})
+        super(BaseVector, self).__init__(**kw)
     
     @property
     def vector(self):
@@ -76,7 +74,7 @@ class ListVector(list):
         super(ListVector, self).__init__(vv)
 
     def cast(self, item):
-        if isinstance(item, self.VectorType):
+        if not isinstance(item, self.VectorType):
             item = self.VectorType(item)
         return item
 

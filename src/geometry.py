@@ -27,14 +27,14 @@ class Tetrahedron(SCAD_Object):
     @property
     def points(self):
         points = ListVector3D([
-            ([0, 0, 0]),
-            ([self.edge, 0, 0]),
-            ([self.edge / 2.0, self.triangle_height, 0]),
-            ([self.edge / 2.0, self.triangle_height / 3.0, self.height]),
+            [0, 0, 0],
+            [self.edge, 0, 0],
+            [self.edge / 2.0, self.triangle_height, 0],
+            [self.edge / 2.0, self.triangle_height / 3.0, self.height],
         ])
         if self.center:
-            tv = v3(self.edge / 2.0, self.triangle_height / 3.0, self.height / 2.0)
-            points = [vv.subtract(tv) for vv in points]
+            tv = Vector3D([self.edge / 2.0, self.triangle_height / 3.0, self.height / 2.0])
+            points = [vv - tv for vv in points]
         return points
 
     @property

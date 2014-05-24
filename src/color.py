@@ -19,19 +19,14 @@ __all__ = [
 class VectorColor(BaseVectorColor):
     ColorNames = __colornames__
 
-    def process_args(self, args):
-        if (len(args) == 1) and type(args[0]) in (str, list):
-            return {"color": args[0]}
-        return super(VectorColor, self).process_args(args)
-
-    def set_color(self, color):
+    def set_colorname(self, color):
         if color not in self.ColorNames:
             raise ValueError, "Unknown color '%s'" % color
         ns = dict(zip(self.Axes, self.ColorNames[color]))
         self.update(ns)
 
-    def get_color(self):
-        distances = [(color, VectorColor(*self.ColorNames[color]).distance(self)) for color in self.ColorNames]
+    def get_colorname(self):
+        distances = [(color, VectorColor(self.ColorNames[color]).distance(self)) for color in self.ColorNames]
         distances.sort(key=lambda x: x[1])
         return distances[0][0]
-    color = property(get_color, set_color)
+    colorname = property(get_colorname, set_colorname)

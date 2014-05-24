@@ -50,16 +50,12 @@ class BaseObject(object):
         "name": {"type": str}
     }
 
-    def __init__(self, *args, **kw):
+    def __init__(self, **kw):
         super(BaseObject, self).__init__()
-        if len(args) == 1 and type(args[0]) in (list, tuple):
-            args = args[0]
         self.__namespace__ = {}
         self.__kw__ = kw
-        self.__args__ = args
         rem_kw = self.process_reserved_names(kw)
         self.__namespace__ = self.process_defaults()
-        self.update(self.process_args(args))
         self.update(rem_kw)
 
     def process_defaults(self, kw={}):
@@ -78,9 +74,6 @@ class BaseObject(object):
         if type(default) == types.FunctionType:
             default = default()
         return default
-
-    def process_args(self, args):
-        return {}
 
     def __call__(self, *args, **kw):
         pass
@@ -167,7 +160,8 @@ class BaseObject(object):
             parts = key.split('.')
             obj = self.resolve(parts[:-1])
             setattr(obj, parts[-1], val)
-        super(BaseObject, self).__setattr__(key, val)
+        else:
+            super(BaseObject, self).__setattr__(key, val)
 
     # children
     def __call__(self, *args):

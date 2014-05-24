@@ -20,6 +20,9 @@ __all__ = [
 class SCAD_Object(BaseObject):
     def render_scad(self, *args, **kw):
         pass
+    def render(self, *args, **kw):
+        engine = OpenSCAD()
+        return engine.render(self, *args, **kw)
 
 class SCAD_Primitive(SCAD_Object):
     SCAD_Name = '__SCAD_Primitive__'
@@ -60,9 +63,14 @@ class Vector3D_SCAD_Primitive(SCAD_Primitive):
         'z': 'vector.z',
     }
     Defaults = {
-        "vector": {"type": Vector3D, "default": lambda: Vector3D(0.0, 0.0, 0.0)},
+        "vector": {"type": Vector3D, "default": lambda: Vector3D([0.0, 0.0, 0.0])},
     }
 
+    def __init__(self, args=(), **kw):
+        if args:
+            kw["vector"] = args
+        super(Vector3D_SCAD_Primitive, self).__init__(**kw)
+    
     def get_scad_args(self):
         return [self.vector]
 
@@ -96,7 +104,7 @@ class OpenSCAD(BaseObject):
         "version": {"type": bool, "default": False},
         "info": {"type": bool, "default": False},
         "camera": {"type": OpenSCAD_Camera, "default": None, "cast": False},
-        "imgsize": {"type": Vector2D, "default": lambda: Vector2D(640, 480)},
+        "imgsize": {"type": Vector2D, "default": lambda: Vector2D((640, 480))},
         "_projection": {"type": str, "default": None, "cast": False},
         "_render": {"type": bool, "default": True},
         "csglimit": {"type": int, "default": None, "cast": False},

@@ -14,14 +14,14 @@ def open_scad_exe():
 
 class TestBase(unittest.TestCase):
     def setUp(self):
-        self.parent_1 = BaseObject("parent_1")
-        self.parent_2 = BaseObject("parent_2")
-        self.child_1 = BaseObject("child_1")
-        self.child_2 = BaseObject("child_2")
-        self.child_3 = BaseObject("child_3")
-        self.child_4 = BaseObject("child_4")
-        self.child_5 = BaseObject("child_5")
-        self.child_6 = BaseObject("child_6")
+        self.parent_1 = BaseObject(name="parent_1")
+        self.parent_2 = BaseObject(name="parent_2")
+        self.child_1 = BaseObject(name="child_1")
+        self.child_2 = BaseObject(name="child_2")
+        self.child_3 = BaseObject(name="child_3")
+        self.child_4 = BaseObject(name="child_4")
+        self.child_5 = BaseObject(name="child_5")
+        self.child_6 = BaseObject(name="child_6")
         self.parent_1.children = (self.child_1, self.child_2, self.child_3)
         self.parent_2.children = (self.child_4, self.child_5, self.child_6)
 
@@ -72,7 +72,7 @@ class TestPolyhedron(unittest.TestCase):
         p = Polyhedron()
         p.points = [[1,1,1], [2,2,2], [3,3,3]]
         p.faces = [[0, 1, 2]]
-        answer = "polyhedron(points=[[1, 1, 1], [2, 2, 2], [3, 3, 3]], faces=[[0, 1, 2]]);"
+        answer = "polyhedron(points=[[1.0, 1.0, 1.0], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0]], faces=[[0.0, 1.0, 2.0]]);"
         self.assertEquals(p.render_scad().strip(), answer)
 
 class TestCube(unittest.TestCase):
@@ -98,39 +98,39 @@ class TestCube(unittest.TestCase):
 class TestVector3D(unittest.TestCase):
     def test_vector_creation(self):
         answers = {'x': 1.0, 'y': 2.0, 'z': 3.0}
-        v1 = Vector3D(1, 2, 3)
+        v1 = Vector3D([1, 2, 3])
         check_vector(v1, **answers)
         v1 = Vector3D([1, 2, 3])
         check_vector(v1, **answers)
 
     def test_vector_aliases(self):
         answers = {'X': 1.0, 'Y': 2.0, 'Z': 3.0}
-        v1 = Vector3D(1, 2, 3)
+        v1 = Vector3D([1, 2, 3])
         check_vector(v1, **answers)
 
     def test_vector_subtraction(self):
         answers = {'x': 1.0, 'y': -1.0, 'z': 2.0}
-        v1 = Vector3D(2, 1, 5)
-        v2 = Vector3D(1, 2, 3)
+        v1 = Vector3D([2, 1, 5])
+        v2 = Vector3D([1, 2, 3])
         check_vector(v1 - v2, **answers)
 
     def test_vector_dot_product(self):
         # http://www.mathsisfun.com/algebra/vectors-dot-product.html
-        v1 = Vector3D(9, 2, 7)
-        v2 = Vector3D(4, 8, 10)
+        v1 = Vector3D([9, 2, 7])
+        v2 = Vector3D([4, 8, 10])
         self.assertEquals(v1.dotproduct(v2), 122)
 
     def test_vector_cross_product(self):
         # http://www.mathsisfun.com/algebra/vectors-cross-product.html
         answers = {'x': -3.0, 'y': 6.0, 'z': -3.0}
-        v1 = Vector3D(2, 3, 4)
-        v2 = Vector3D(5, 6, 7)
+        v1 = Vector3D([2, 3, 4])
+        v2 = Vector3D([5, 6, 7])
         check_vector(v1.crossproduct(v2), **answers)
 
     def test_vector_distance(self):
         # http://www.econ.upf.edu/~michael/stanford/maeb4.pdf
-        v1 = Vector3D(6.1, 51, 3.0)
-        v2 = Vector3D(1.9, 99, 2.9)
+        v1 = Vector3D([6.1, 51, 3.0])
+        v2 = Vector3D([1.9, 99, 2.9])
         tolerance = 1
         self.assertAlmostEqual(v1.distance(v2), 48.17, places=tolerance)
 
@@ -151,13 +151,13 @@ class TestColor(unittest.TestCase):
         c = Color()
         check_vector(c, **answers)
         answers = {'r': 3.0, 'g': 6.0, 'b': 3.0}
-        c = Color((3,6,3))
+        c = Color([3,6,3])
         check_vector(c, **answers)
-        c = Color(3,6,3)
+        c = Color([3,6,3])
         check_vector(c, **answers)
 
     def test_modification(self):
-        c = Color(3,6,3)
+        c = Color([3,6,3])
         c.r += 1
         answers = {'r': 4.0, 'g': 6.0, 'b': 3.0}
         check_vector(c, **answers)
@@ -172,17 +172,18 @@ class TestColor(unittest.TestCase):
         c.g += 1
         answers = {'r': 0.0, 'g': 129.0, 'b': 0.0}
         check_vector(c, **answers)
-        self.assertEquals(c.color, "green")
+        self.assertEquals(c.colorname, "green")
         c.g = 0
-        self.assertNotEquals(c.color, "green")
+        self.assertNotEquals(c.colorname, "green")
 
 class TestGeometry(unittest.TestCase):
     def test_tetrahedron(self):
         Tetrahedron()
-        tet = Tetrahedron(h=1)
+        tet = Tetrahedron(h=1, center=True)
         self.assertEquals(tet.h, 1.0)
         scad = tet.render_scad()
-        print scad
+        answer = "polyhedron(points=[[-0.6123724356957945, -0.35355339059327373, -0.5], [0.6123724356957945, -0.35355339059327373, -0.5], [0.0, 0.7071067811865475, -0.5], [0.0, 0.0, 0.5]], faces=[[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [0.0, 2.0, 3.0], [2.0, 1.0, 3.0]]);"
+        self.assertEquals(tet.render_scad().strip(), answer)
 
 class TestOpenSCAD(unittest.TestCase):
     def setUp(self):
@@ -201,9 +202,9 @@ class TestOpenSCAD(unittest.TestCase):
         scad = OpenSCAD()
         for ext in ("png", "dxf", "stl", "scad"):
             if ext == "dxf":
-                scene = Projection(cut=True)( Translate([0, 0, 1])( (Cube((1, 2, 3)), Sphere(2)) ))
+                scene = Projection(cut=True)( Translate([0, 0, 1])( (Cube((1, 2, 3)), Sphere(r=2)) ))
             else:
-                scene = Union()(Cube((1, 2, 3)), Sphere(2))
+                scene = Union()(Cube((1, 2, 3)), Sphere(r=2))
             fn = "render." + ext
             self.assertFalse(os.path.exists(self.tdir(fn)))
             scad.render(scene, self.tdir(fn))

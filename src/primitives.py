@@ -28,14 +28,21 @@ class Color(SCAD_Primitive):
         'a': '_color.a',
         'A': '_color.a',
         # color
-        'color': '_color.color',
+        'colorname': '_color.colorname',
+        'color': '_color',
     }
     Defaults = {
         "_color": {"type": VectorColor, "default": lambda: VectorColor()},
     }
-    def process_args(self, args):
-        return VectorColor(args).namespace
 
+    def __init__(self, args=(), **kw):
+        if args:
+            if type(args) in (str, unicode):
+                kw["colorname"] = args
+            else:
+                kw["color"] = args
+        super(SCAD_Primitive, self).__init__(**kw)
+    
 class Projection(SCAD_Primitive):
     SCAD_Name = "projection"
     Defaults = {
@@ -89,9 +96,14 @@ class Cube(SCAD_Primitive):
         'z': 'size.z',
     }
     Defaults = {
-        "size": {"type": Vector3D, "default": lambda: Vector3D(1.0, 1.0, 1.0)},
+        "size": {"type": Vector3D, "default": lambda: Vector3D([1.0, 1.0, 1.0])},
         "center": {"type": bool, "default": False},
     }
+
+    def __init__(self, args=(), **kw):
+        if args:
+            kw["size"] = args
+        super(Cube, self).__init__(**kw)
 
     def get_scad_args(self):
         return [self.size, ("center", self.center)]
@@ -104,12 +116,6 @@ class Cube(SCAD_Primitive):
             size = [size] * 3
         self["size"] = Vector3D(size)
     size = property(get_size, set_size)
-
-    def process_args(self, args):
-        ret = {}
-        if args:
-            ret["size"] = args[0] if (len(args) == 1) else args
-        return ret
 
 class Cylinder(SCAD_Primitive):
     SCAD_Name = "cylinder"
