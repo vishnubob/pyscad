@@ -9,7 +9,17 @@ sctk = {
     "author":"Giles Hall",
     "packages": ["scad"],
     "package_dir": {"scad": "src"},
-    'py_modules':['scad.__init__', 'scad.api', 'scad.utils'],
+    "py_modules":[
+        "scad.__init__", 
+        "scad.api", 
+        "scad.base", 
+        "scad.color", 
+        "scad.colornames",
+        "scad.core", 
+        "scad.geometry", 
+        "scad.utils", 
+        "scad.vector", 
+    ],
     "version": "0.1",
 }
 

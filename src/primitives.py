@@ -1,5 +1,5 @@
 from color import *
-from scad import *
+from core import *
 from vector import *
 import logging
 import inspect
@@ -66,6 +66,21 @@ class Rotate(Vector3D_SCAD_Primitive):
 
 class Translate(Vector3D_SCAD_Primitive):
     SCAD_Name = "translate"
+
+class Polyhedron(Vector3D_SCAD_Primitive):
+    SCAD_Name = "polyhedron"
+    Defaults = {
+        "points": {"type": ListVector3D, "cast": lambda x: ListVector3D(*x)},
+        "faces": {"type": ListVector3D, "cast": lambda x: ListVector3D(*x)},
+        "convexity": {"type": int, "default": None},
+    }
+    def get_scad_args(self):
+        pts = [list(i) for i in self.points]
+        faces = [list(i) for i in self.faces]
+        args = [("points", pts), ("faces", faces)]
+        if self.convexity != None:
+            args.append(("convexity", self.convexity))
+        return args
 
 class Cube(SCAD_Primitive):
     SCAD_Name = "cube"

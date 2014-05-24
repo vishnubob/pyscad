@@ -1,7 +1,8 @@
-from api import *
-from scad import *
+from primitives import *
+from core import *
 from utils import *
 from color import *
+from vector import *
 
 import logging
 

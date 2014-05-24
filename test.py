@@ -60,6 +60,17 @@ class TestCylinder(unittest.TestCase):
         answer = "cylinder(r=20.0, h=10.0, center=false);"
         self.assertEquals(c.render_scad().strip(), answer)
 
+class TestPolyhedron(unittest.TestCase):
+    def test_polyhedron_creation(self):
+        p = Polyhedron()
+
+    def test_sphere_scad(self):
+        p = Polyhedron()
+        p.points = [[1,1,1], [2,2,2], [3,3,3]]
+        p.faces = [[0, 1, 2]]
+        answer = "polyhedron(points=[[1, 1, 1], [2, 2, 2], [3, 3, 3]], faces=[[0, 1, 2]]);"
+        self.assertEquals(p.render_scad().strip(), answer)
+
 class TestCube(unittest.TestCase):
     def test_cube_creation(self):
         answers = {'x': 1, 'y': 1, 'z': 1}
@@ -180,7 +191,7 @@ class TestOpenSCAD(unittest.TestCase):
     @unittest.skipUnless(open_scad_exe(), "No available OpenSCAD Binary")
     def test_openscad_render(self):
         scad = OpenSCAD()
-        for ext in ("png", "dxf", "stl"):
+        for ext in ("png", "dxf", "stl", "scad"):
             if ext == "dxf":
                 scene = Projection(cut=True)( Translate([0, 0, 1])( (Cube((1, 2, 3)), Sphere(2)) ))
             else:
