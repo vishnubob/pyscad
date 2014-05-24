@@ -10,6 +10,32 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
+class Color(SCAD_Primitive):
+    SCAD_Name = "color"
+
+    Aliases = {
+        'r': 'color.r',
+        'R': 'color.r',
+        'red': 'color.r',
+        'b': 'color.g',
+        'B': 'color.g',
+        'green': 'color.g',
+        'b': 'color.b',
+        'B': 'color.b',
+        'blue': 'color.b',
+        'a': 'color.a',
+        'A': 'color.a',
+        'alpha': 'color.a',
+    }
+    Defaults = {
+        "color": {"type": VectorColor, "default": lambda: VectorColor()},
+    }
+    def get_color(self):
+        return self["color"]
+    def set_color(self, color):
+        self["color"].color = color
+    color = property(get_color, set_color)
+
 class Union(SCAD_Primitive):
     SCAD_Name = "union"
 
@@ -132,4 +158,3 @@ class Cylinder(SCAD_Primitive):
     def set_resolution(self, val):
         self["resolution"] = val
     resolution = property(get_resolution, set_resolution)
-
