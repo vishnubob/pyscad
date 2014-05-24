@@ -98,15 +98,24 @@ class TestVector3D(unittest.TestCase):
         check_vector(v1 - v2, **answers)
 
     def test_vector_dot_product(self):
+        # http://www.mathsisfun.com/algebra/vectors-dot-product.html
         v1 = Vector3D(9, 2, 7)
         v2 = Vector3D(4, 8, 10)
         self.assertEquals(v1.dotproduct(v2), 122)
 
     def test_vector_cross_product(self):
+        # http://www.mathsisfun.com/algebra/vectors-cross-product.html
         answers = {'x': -3.0, 'y': 6.0, 'z': -3.0}
         v1 = Vector3D(2, 3, 4)
         v2 = Vector3D(5, 6, 7)
         check_vector(v1.crossproduct(v2), **answers)
+
+    def test_vector_distance(self):
+        # http://www.econ.upf.edu/~michael/stanford/maeb4.pdf
+        v1 = Vector3D(6.1, 51, 3.0)
+        v2 = Vector3D(1.9, 99, 2.9)
+        tolerance = 1
+        self.assertAlmostEqual(v1.distance(v2), 48.17, places=tolerance)
 
 class TestUnion(unittest.TestCase):
     def test_union_creation(self):
@@ -118,6 +127,37 @@ class TestUnion(unittest.TestCase):
         u = Union()(Cube(), Cube(2))
         answer = 'union() {\n    cube([1.0, 1.0, 1.0], center=false);\n    cube([2.0, 2.0, 2.0], center=false);\n}'
         self.assertEquals(u.render_scad().strip(), answer)
+
+class TestColor(unittest.TestCase):
+    def test_color_creation(self):
+        answers = {'r': 0.0, 'g': 0.0, 'b': 0.0}
+        c = Color()
+        check_vector(c, **answers)
+        answers = {'r': 3.0, 'g': 6.0, 'b': 3.0}
+        c = Color((3,6,3))
+        check_vector(c, **answers)
+        c = Color(3,6,3)
+        check_vector(c, **answers)
+
+    def test_modification(self):
+        c = Color(3,6,3)
+        c.r += 1
+        answers = {'r': 4.0, 'g': 6.0, 'b': 3.0}
+        check_vector(c, **answers)
+        c.g = 0
+        answers = {'r': 4.0, 'g': 0.0, 'b': 3.0}
+        check_vector(c, **answers)
+
+    def test_color_selector(self):
+        c = Color("green")
+        answers = {'r': 0.0, 'g': 128.0, 'b': 0.0}
+        check_vector(c, **answers)
+        c.g += 1
+        answers = {'r': 0.0, 'g': 129.0, 'b': 0.0}
+        check_vector(c, **answers)
+        self.assertEquals(c.color, "green")
+        c.g = 0
+        self.assertNotEquals(c.color, "green")
 
 if __name__ == '__main__':
     unittest.main()

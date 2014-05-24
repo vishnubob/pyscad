@@ -1,13 +1,21 @@
-# Rockit - Model Rocket Construction Kit
-# Giles Hall (C) 2013
 import math
 import json
 import os
 import logging
 import operator
+from ctypes import pythonapi, py_object
+from _ctypes import PyObj_FromPtr
 
 logger = logging.getLogger(__name__)
 
+def dict_proxy(obj):
+    # http://code.activestate.com/recipes/576540-make-dictproxy-object-via-ctypespythonapi-and-type/
+    PyDictProxy_New = pythonapi.PyDictProxy_New
+    PyDictProxy_New.argtypes = (py_object,)
+    PyDictProxy_New.rettype = py_object
+    assert isinstance(obj, dict)
+    return PyObj_FromPtr(PyDictProxy_New(obj))
+    
 def subtract_vector(v1, v2):
     return [operator.sub(*args) for args in zip(v1, v2)]
 

@@ -13,6 +13,21 @@ logger = logging.getLogger(__name__)
 class Union(SCAD_Primitive):
     SCAD_Name = "union"
 
+class Difference(SCAD_Primitive):
+    SCAD_Name = "difference"
+
+class Intersection(SCAD_Primitive):
+    SCAD_Name = "intersection"
+
+class Minowski(SCAD_Primitive):
+    SCAD_Name = "minowski"
+
+class Hull(SCAD_Primitive):
+    SCAD_Name = "hull"
+
+class Render(SCAD_Primitive):
+    SCAD_Name = "render"
+
 class Cube(SCAD_Primitive):
     SCAD_Name = "cube"
     Aliases = {
