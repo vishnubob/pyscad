@@ -37,6 +37,12 @@ class Color(SCAD_Primitive):
     def process_args(self, args):
         return VectorColor(args).namespace
 
+class Projection(SCAD_Primitive):
+    SCAD_Name = "projection"
+    Defaults = {
+        "cut": {"type": bool, "default": False}
+    }
+
 class Union(SCAD_Primitive):
     SCAD_Name = "union"
 
@@ -54,6 +60,12 @@ class Hull(SCAD_Primitive):
 
 class Render(SCAD_Primitive):
     SCAD_Name = "render"
+
+class Rotate(Vector3D_SCAD_Primitive):
+    SCAD_Name = "rotate"
+
+class Translate(Vector3D_SCAD_Primitive):
+    SCAD_Name = "translate"
 
 class Cube(SCAD_Primitive):
     SCAD_Name = "cube"

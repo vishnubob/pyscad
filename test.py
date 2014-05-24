@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+import shutil
 from scad import *
 from scad.base import BaseObject
 
@@ -158,6 +160,36 @@ class TestColor(unittest.TestCase):
         self.assertEquals(c.color, "green")
         c.g = 0
         self.assertNotEquals(c.color, "green")
+
+def open_scad_exe():
+    scad = OpenSCAD()
+    return scad.command
+
+class TestOpenSCAD(unittest.TestCase):
+    def setUp(self):
+        self._tdir = tempfile.mkdtemp()
+    def tearDown(self):
+        shutil.rmtree(self._tdir)
+
+    def tdir(self, path):
+        return os.path.join(self._tdir, path)
+
+    def test_openscad_creation(self):
+        scad = OpenSCAD()
+
+    @unittest.skipUnless(open_scad_exe(), "No available OpenSCAD Binary")
+    def test_openscad_render(self):
+        scad = OpenSCAD()
+        for ext in ("png", "dxf", "stl"):
+            if ext == "dxf":
+                scene = Projection(cut=True)( Translate([0, 0, 1])( (Cube((1, 2, 3)), Sphere(2)) ))
+            else:
+                scene = Union()(Cube((1, 2, 3)), Sphere(2))
+            fn = "render." + ext
+            self.assertFalse(os.path.exists(self.tdir(fn)))
+            scad.render(scene, self.tdir(fn))
+            self.assertTrue(os.path.exists(self.tdir(fn)))
+            self.assertGreater(os.path.getsize(self.tdir("render.png")), 0)
 
 if __name__ == '__main__':
     unittest.main()
