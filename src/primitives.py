@@ -5,7 +5,6 @@ import logging
 import inspect
 import sys
 
-_current_module = sys.modules[__name__]
 logger = logging.getLogger(__name__)
 
 class Color(SCAD_Primitive):
@@ -70,8 +69,8 @@ class Translate(Vector3D_SCAD_Primitive):
 class Polyhedron(Vector3D_SCAD_Primitive):
     SCAD_Name = "polyhedron"
     Defaults = {
-        "points": {"type": ListVector3D, "cast": lambda x: ListVector3D(*x)},
-        "faces": {"type": ListVector3D, "cast": lambda x: ListVector3D(*x)},
+        "points": {"type": ListVector3D},
+        "faces": {"type": ListVector3D},
         "convexity": {"type": int, "default": None},
     }
     def get_scad_args(self):
@@ -192,4 +191,5 @@ class Sphere(SCAD_Primitive):
 # auto generate __all__
 #
 
+_current_module = sys.modules[__name__]
 __all__ = [name for (name, obj) in globals().items() if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Primitive)]

@@ -8,6 +8,10 @@ def check_vector(vector, **answers):
     for (key, value) in answers.items():
         assert getattr(vector, key) == value, "%s != %s" % (getattr(vector, key), value)
 
+def open_scad_exe():
+    scad = OpenSCAD()
+    return scad.command
+
 class TestBase(unittest.TestCase):
     def setUp(self):
         self.parent_1 = BaseObject("parent_1")
@@ -172,9 +176,13 @@ class TestColor(unittest.TestCase):
         c.g = 0
         self.assertNotEquals(c.color, "green")
 
-def open_scad_exe():
-    scad = OpenSCAD()
-    return scad.command
+class TestGeometry(unittest.TestCase):
+    def test_tetrahedron(self):
+        Tetrahedron()
+        tet = Tetrahedron(h=1)
+        self.assertEquals(tet.h, 1.0)
+        scad = tet.render_scad()
+        print scad
 
 class TestOpenSCAD(unittest.TestCase):
     def setUp(self):

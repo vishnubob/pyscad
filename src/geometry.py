@@ -1,10 +1,20 @@
 from core import *
+from primitives import *
+from vector import *
+import math
+import inspect
+import sys
 
-class Tetrahedron(Part):
+class Tetrahedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
+        "center": {"type": bool, "default": False},
     }
-    def get_edge(self, edge):
+    Aliases = {
+        'h': "height",
+        'e': "edge",
+    }
+    def get_edge(self):
         return self.height / math.sqrt(2.0 / 3.0)
     def set_edge(self, edge):
         self.height = edge * math.sqrt(2.0 / 3.0)
@@ -12,16 +22,16 @@ class Tetrahedron(Part):
 
     @property
     def triangle_height(self):
-        self.edge * (math.sqrt(3.0) / 2.0)
+        return self.edge * (math.sqrt(3.0) / 2.0)
 
     @property
     def points(self):
-        points = [
-            v3([0, 0, 0]),
-            v3([self.edge, 0, 0]),
-            v3([self.edge / 2.0, self.triangle_height, 0]),
-            v3([self.edge / 2.0, self.triangle_height / 3.0, height]),
-        ]
+        points = ListVector3D([
+            ([0, 0, 0]),
+            ([self.edge, 0, 0]),
+            ([self.edge / 2.0, self.triangle_height, 0]),
+            ([self.edge / 2.0, self.triangle_height / 3.0, self.height]),
+        ])
         if self.center:
             tv = v3(self.edge / 2.0, self.triangle_height / 3.0, self.height / 2.0)
             points = [vv.subtract(tv) for vv in points]
@@ -29,10 +39,10 @@ class Tetrahedron(Part):
 
     @property
     def faces(self):
-        return [[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]]
+        return ListVector3D([[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]])
 
     def render_scad(self):
-        return Polyhedron(points=list(points), faces=list(faces)).render_scad()
+        return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
 
 """
 def pyramid(height, width=None, depth=None, center=False):
@@ -91,3 +101,10 @@ def render_crosshairs(length=25, width=1, height=1, rad=2):
         ])
     return scad
 """
+
+#
+# auto generate __all__
+#
+
+_current_module = sys.modules[__name__]
+__all__ = [name for (name, obj) in globals().items() if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Object)]

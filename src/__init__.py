@@ -3,6 +3,7 @@ from core import *
 from utils import *
 from color import *
 from vector import *
+from geometry import *
 
 import logging
 

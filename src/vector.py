@@ -71,10 +71,8 @@ class BaseVector(BaseObject):
 class ListVector(list):
     VectorType = BaseVector
 
-    def __init__(self, *args):
-        import traceback
-        frames = 4
-        vv = [self.cast(i) for i in args]
+    def __init__(self, iterable=()):
+        vv = [self.cast(i) for i in iterable]
         super(ListVector, self).__init__(vv)
 
     def cast(self, item):
