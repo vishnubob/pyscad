@@ -1,7 +1,7 @@
 import math
 import operator
 import itertools
-from base import BaseObject
+from base import BaseObject, BaseObjectMetaclass
 
 __all__ = [
     "Vector2D",
@@ -11,7 +11,17 @@ __all__ = [
     "BaseVector",
 ]
 
+class BaseVectorMetaClass(BaseObjectMetaclass):
+    @classmethod
+    def new_hook(cls, name, bases, ns):
+        axes = ns.get("Axes")
+        defaults = ns.get("Defaults", {})
+        defaults = {axis: {"type": float} for axis in axes if axis not in defaults}
+        ns["Defaults"] = defaults
+
 class BaseVector(BaseObject):
+    __metaclass__ = BaseVectorMetaClass
+
     Axes = ()
     Defaults = {}
     Aliases = {}
@@ -90,25 +100,24 @@ class ListVector(list):
     def insert(self, index, item):
         super(ListVector, self).insert(index, self.cast(item))
 
+    @classmethod
+    def factory(cls, vector_type, name=None):
+        name = name or "List" + vector_type.__name__
+        return type(name, (cls,), {"VectorType": vector_type})
 
-def vector_type_factory(name, axes, aliases=None, default=0.0, defaults_map=None, baseclass=None):
-    # vector_type
-    defaults_map = defaults_map or {}
-    baseclass = baseclass or BaseVector
-    axes = tuple([axis.lower() for axis in axes])
-    aliases = aliases or {axis: (axis.upper(),) for axis in axes}
-    aliases = dict(itertools.chain(*[itertools.product(tag, val) for (val, tag) in aliases.items()]))
-    defaults = {axis: {"type": float, "default": defaults_map.get(axis, default)} for axis in axes}
-    ns = {
-        "Axes": axes,
-        "Defaults": defaults,
-        "Aliases": aliases,
+class Vector2D(BaseVector):
+    Axes = ['x', 'y']
+    AliasMap = {
+        'x': ('X', 'width', 'w'),
+        'y': ('Y', 'depth', 'd'),
     }
-    vector_type = type(name, (baseclass,), ns)
-    # list_vector_type
-    list_vector_type = type("List" + name, (ListVector,), {"VectorType": vector_type})
-    return (vector_type, list_vector_type)
+ListVector2D = ListVector.factory(Vector2D)
 
-(Vector2D, ListVector2D) = vector_type_factory("Vector2D", ['x', 'y'])
-(Vector3D, ListVector3D) = vector_type_factory("Vector3D", ['x', 'y', 'z'], aliases={'x': ('X', 'h', 'height'), 'y': ('Y', 'w', 'width'), 'z': ('Z', 'd', 'depth')})
-
+class Vector3D(BaseVector):
+    Axes = ['x', 'y', 'z']
+    AliasMap = {
+        'x': ('X', 'width', 'w'),
+        'y': ('Y', 'depth', 'd'),
+        'z': ('Z', 'height', 'h'),
+    }
+ListVector3D = ListVector.factory(Vector3D)

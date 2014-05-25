@@ -10,16 +10,11 @@ logger = logging.getLogger(__name__)
 class Color(SCAD_Primitive):
     SCAD_Name = "color"
 
-    Aliases = {
-        'red': '_color.r',
-        'green': '_color.g',
-        'blue': '_color.b',
-        'alpha': '_color.a',
-        'colorname': '_color.colorname',
-        'color': '_color',
-    }
     Defaults = {
-        "_color": {"type": VectorColor, "default": lambda: VectorColor()},
+        "color": {"type": VectorColor, "default": lambda: VectorColor()},
+    }
+    Aliases = {
+        "colorname": "color.colorname",
     }
 
     def __init__(self, args=(), **kw):

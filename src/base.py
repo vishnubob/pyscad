@@ -21,6 +21,10 @@ class BaseObjectMetaclass(type):
             for alias in ns["AliasMap"][key]:
                 if alias not in ns["Aliases"]:
                     ns["Aliases"][alias] = key
+        # hook time
+        cls.alias_embedded_objects(name, bases, ns)
+        cls.new_hook(name, bases, ns)
+        # rebuild AliasMap
         ns["AliasMap"].clear()
         for (alias, key) in ns["Aliases"].items():
             ns["AliasMap"][key] = ns["AliasMap"].get(key, ()) + (alias,)
@@ -29,8 +33,38 @@ class BaseObjectMetaclass(type):
             if key in ns:
                 continue
             cls.property_hook(name, bases, ns, key)
-        newtype = cls.new_hook(name, bases, ns)
-        return type.__new__(*newtype)
+        return type.__new__(cls, name, bases, ns)
+
+    @classmethod
+    def alias_embedded_objects(cls, name, bases, ns):
+        seenit = set()
+        for key in ns["Defaults"].keys() + ns.keys():
+            if key in seenit:
+                continue
+            seenit.add(key)
+            # check to see if the target type of this key also has aliases
+            cobj = ns["Defaults"].get(key, {"type": None})["type"]
+            if inspect.isclass(cobj) and issubclass(cobj, BaseObject):
+                # check to see if our namespace has aliases to the
+                # inner object
+                root_aliases = ns["AliasMap"].get(key, ('',))
+                # for all the known aliases of the inner object
+                for root_alias in root_aliases:
+                    for cobj_key in cobj.Defaults:
+                        new_alias = root_alias + cobj_key
+                        new_alias_key = "%s.%s" % (key, cobj_key)
+                        if new_alias not in ns["Aliases"]:
+                            ns["Aliases"][new_alias] = new_alias_key
+                    # for all of the known aliased items within inner object
+                    for cobj_key in cobj.AliasMap:
+                        # for all of the known aliases of aliased items within inner object
+                        for cobj_alias in cobj.AliasMap[cobj_key]:
+                            # assign new alias that combines the inner object alias
+                            # with the alias for the item within the inner object
+                            new_alias = root_alias + cobj_alias
+                            new_alias_key = "%s.%s" % (key, cobj_key)
+                            if new_alias not in ns["Aliases"]:
+                                ns["Aliases"][new_alias] = new_alias_key
 
     @classmethod
     def mro_walk(cls, name, bases):

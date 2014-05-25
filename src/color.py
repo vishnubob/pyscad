@@ -1,23 +1,17 @@
 from base import BaseObject
-from vector import vector_type_factory
+from vector import BaseVector, ListVector
 from colornames import ColorNames as __colornames__
 
 __all__ = [
     "VectorColor",
 ]
 
-(BaseVectorColor, ListBaseVectorColor) = vector_type_factory(
-    "BaseVectorColor", 
-    ['r', 'g', 'b', 'a'], 
-    aliases = {
-        'r': ('R', 'red'),
-        'g': ('G', 'green'),
-        'b': ('B', 'blue'),
-        'a': ('A', 'alpha'),
-    })
-
-class VectorColor(BaseVectorColor):
+class VectorColor(BaseVector):
     ColorNames = __colornames__
+    Axes = ['red', 'green', 'blue', 'alpha']
+    Defaults = {
+        "colorname": {"type": str, "default": None, "cast": False}
+    }
 
     def set_colorname(self, color):
         if color not in self.ColorNames:
@@ -30,3 +24,5 @@ class VectorColor(BaseVectorColor):
         distances.sort(key=lambda x: x[1])
         return distances[0][0]
     colorname = property(get_colorname, set_colorname)
+
+ListVectorColor = ListVector.factory(VectorColor)
