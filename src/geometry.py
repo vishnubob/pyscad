@@ -9,9 +9,20 @@ class Pipe(SCAD_Object):
     Defaults = {
         "inner": {"type": Cylinder},
         "outer": {"type": Cylinder},
+        "_height": {"type": int},
     }
-    def get_scad(self):
-        return Difference()(self.outer, sef.inner)
+    Aliases = {
+        'i': 'inner',
+        'o': 'outer'
+    }
+    def render_scad(self):
+        return Difference()(self.outer, self.inner).render_scad()
+    def get_height(self):
+        return self.inner.height
+    def set_height(self, height):
+        self.inner.height = height
+        self.outer.height = height
+    height = property(get_height, set_height)
 
 class Octohedron(SCAD_Object):
     Defaults = {
@@ -52,7 +63,7 @@ class Octohedron(SCAD_Object):
         return self.edge * (math.sqrt(3.0) / 2.0)
 
     def render_scad(self):
-        return Polyhedron(points=list(self.points), faces=list(self.faces))
+        return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
 
 class Tetrahedron(SCAD_Object):
     Defaults = {

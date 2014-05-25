@@ -187,6 +187,20 @@ class TestGeometry(unittest.TestCase):
 
     def test_pipe(self):
         Pipe()
+        p = Pipe()
+        scad = p.render_scad()
+        answer = "difference() {\n    cylinder(r=1.0, h=1.0, center=false);\n    cylinder(r=1.0, h=1.0, center=false);\n}"
+        self.assertEquals(scad.strip(), answer)
+        p = Pipe(or1=8, or2=5, ir1=7, ir2=2, h=20.0)
+        self.assertEquals(p.ir, 7.0)
+        self.assertEquals(p.inner.r1, 7.0)
+        self.assertEquals(p.inner.r2, 2.0)
+        self.assertEquals(p.outer.r1, 8.0)
+        self.assertEquals(p.outer.r2, 5.0)
+        self.assertEquals(p.height, 20.0)
+        scad = p.render_scad()
+        answer = 'difference() {\n    cylinder(r1=8.0, r2=5.0, h=20.0, center=false);\n    cylinder(r1=7.0, r2=2.0, h=20.0, center=false);\n}'
+        self.assertEquals(scad.strip(), answer)
 
     def _test_octohedron(self):
         Octohedron()

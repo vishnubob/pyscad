@@ -22,18 +22,23 @@ class BaseObjectMetaclass(type):
                 if alias not in ns["Aliases"]:
                     ns["Aliases"][alias] = key
         # hook time
+        cls.refresh_alias_map(ns)
         cls.alias_embedded_objects(name, bases, ns)
+        cls.refresh_alias_map(ns)
         cls.new_hook(name, bases, ns)
-        # rebuild AliasMap
-        ns["AliasMap"].clear()
-        for (alias, key) in ns["Aliases"].items():
-            ns["AliasMap"][key] = ns["AliasMap"].get(key, ()) + (alias,)
+        cls.refresh_alias_map(ns)
         # add automatic properties
         for key in ns["Defaults"]:
             if key in ns:
                 continue
             cls.property_hook(name, bases, ns, key)
         return type.__new__(cls, name, bases, ns)
+
+    @classmethod
+    def refresh_alias_map(cls, ns):
+        ns["AliasMap"].clear()
+        for (alias, key) in ns["Aliases"].items():
+            ns["AliasMap"][key] = ns["AliasMap"].get(key, ()) + (alias,)
 
     @classmethod
     def alias_embedded_objects(cls, name, bases, ns):
