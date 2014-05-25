@@ -1,4 +1,5 @@
 import os
+import math
 import sys
 import tempfile
 import logging
@@ -247,21 +248,32 @@ class OpenSCAD(SCAD_Primitive):
 
 class RadialResolution(SCAD_Primitive):
     Defaults = {
-        "fn": {"type": float, "default": None},
-        "fs": {"type": float, "default": None},
-        "fa": {"type": float, "default": None},
+        "fn": {"type": float, "default": 0.0},
+        "fs": {"type": float, "default": 2.0},
+        "fa": {"type": float, "default": 2.0},
     }
 
     def get_scad_args(self):
         ret = []
-        if self.fn:
+        if self.fn != self.Defaults["fn"]["default"]:
             ret.append(("$fn", self.fn))
         else:
-            if self.fa:
+            if self.fa != self.Defaults["fa"]["default"]:
                 ret.append(("$fa", self.fa))
-            if self.fs:
+            if self.fs != self.Defaults["fs"]["default"]:
                 ret.append(("$fs", self.fs))
         return ret
+    
+    def get_fragments(self, length, angle=360):
+        if self.fn:
+            return self.fn
+        # minimum angle
+        fragments = angle / self.fa
+        fragment_length = length / fragments
+        if fragment_length < self.fs:
+            # minimum size of a fragment 
+            fragments = length / self.fs
+        return int(math.floor(fragments))
 
 def render(scene, **kw):
     OpenSCAD(**kw).render(scene)

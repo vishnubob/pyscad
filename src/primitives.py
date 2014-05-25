@@ -70,6 +70,44 @@ class Polyhedron(Vector3D_SCAD_Primitive):
             args.append(("convexity", self.convexity))
         return args
 
+class Polygon(Vector3D_SCAD_Primitive):
+    SCAD_Name = "polygon"
+    Defaults = {
+        "points": {"type": ListVector2D},
+        "paths": {"type": ListVector2D},
+        "convexity": {"type": int, "default": None},
+    }
+    def get_scad_args(self):
+        pts = [list(i) for i in self.points]
+        paths = [list(i) for i in self.paths]
+        args = [("points", pts)]
+        if paths:
+            args.append(paths)
+        if self.convexity != None:
+            args.append(("convexity", self.convexity))
+        return args
+
+class LinearExtrude(SCAD_Primitive):
+    SCAD_Name = "linear_extrude"
+    Defaults = {
+        "height": {"type": float},
+        "center": {"type": bool, "default": False},
+        "convexity": {"type": int, "default": None},
+        "twist": {"type": float},
+        "slices": {"type": int, "default": 20},
+        "scale": {"type": float, "default": 1.0},
+    }
+    def get_scad_args(self):
+        args = []
+        args.append(("height", self.height))
+        args.append(("center", self.center))
+        args.append(("twist", self.twist))
+        args.append(("slices", self.slices))
+        args.append(("scale", self.scale))
+        if self.convexity != None:
+            args.append(("convexity", self.convexity))
+        return args
+
 class Cube(SCAD_Primitive):
     SCAD_Name = "cube"
     Aliases = {

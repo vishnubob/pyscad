@@ -24,6 +24,52 @@ class Pipe(SCAD_Object):
         self.outer.height = height
     height = property(get_height, set_height)
 
+class PieSlice(SCAD_Object):
+    Defaults = {
+        "angle": {"type": float, "default":180},
+        "phase": {"type": float},
+        "radius": {"type": float},
+        "height": {"type": float},
+        "resolution": {"type": RadialResolution},
+    }
+
+    @property
+    def points(self):
+        arclength = (self.angle * math.pi * self.radius) / 180.0
+        if not arclength:
+            return ListVector2D()
+        fragments = self.resolution.get_fragments(arclength, angle=self.angle)
+        angle_step = self.angle / fragments if fragments else 0
+        points = []
+        rem = (self.angle - fragments * angle_step) / 2.0
+        x = math.cos(math.radians(self.phase)) * self.radius
+        y = math.sin(math.radians(self.phase)) * self.radius
+        points.append([x, y])
+        for fragment in range(fragments):
+            step = fragment * angle_step + self.phase + rem
+            x = math.cos(math.radians(step)) * self.radius
+            y = math.sin(math.radians(step)) * self.radius
+            points.append([x, y])
+        x = math.cos(math.radians(self.angle + self.phase)) * self.radius
+        y = math.sin(math.radians(self.angle + self.phase)) * self.radius
+        points.append([x, y])
+        return ListVector2D(points)
+
+    def render_scad(self):
+        ret = Polygon(points=self.points)
+        if self.height:
+            ret = LinearExtrude(height=self.height)(ret)
+        print ret.__dict__
+        return ret.render_scad()
+
+class SemiCylinder(Cylinder):
+    Defaults = {
+        "angle": {"type": float, "default":180},
+        "phase": {"type": float},
+    }
+    def render_scad(self):
+        return Difference()(self, self.inner).render_scad()
+
 class Octohedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},

@@ -44,11 +44,11 @@ class TestRadialResolution(unittest.TestCase):
         c.fn = 0
         answer = "cylinder(r=20.0, h=10.0, center=false, $fa=1.0);"
         self.assertEquals(c.render_scad().strip(), answer)
-        c.fs = 2
-        answer = "cylinder(r=20.0, h=10.0, center=false, $fa=1.0, $fs=2.0);"
+        c.fs = 3
+        answer = "cylinder(r=20.0, h=10.0, center=false, $fa=1.0, $fs=3.0);"
         self.assertEquals(c.render_scad().strip(), answer)
-        c.fs = 0
-        c.fa = 0
+        c.fs = 2
+        c.fa = 2
         answer = "cylinder(r=20.0, h=10.0, center=false);"
         self.assertEquals(c.render_scad().strip(), answer)
 
@@ -177,6 +177,14 @@ class TestColor(unittest.TestCase):
         self.assertNotEquals(c.colorname, "green")
 
 class TestGeometry(unittest.TestCase):
+    def _test_pieslice(self):
+        PieSlice()
+        pie = PieSlice(height=4, r=4, center=True)
+        self.assertEquals(pie.h, 4.0)
+        scad = pie.render_scad()
+        answer = ""
+        self.assertEquals(scad.strip(), answer)
+
     def test_tetrahedron(self):
         Tetrahedron()
         tet = Tetrahedron(h=1, center=True)
