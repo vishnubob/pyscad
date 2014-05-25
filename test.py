@@ -185,6 +185,9 @@ class TestGeometry(unittest.TestCase):
         answer = "polyhedron(points=[[-0.6123724356957945, -0.35355339059327373, -0.5], [0.6123724356957945, -0.35355339059327373, -0.5], [0.0, 0.7071067811865475, -0.5], [0.0, 0.0, 0.5]], faces=[[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [0.0, 2.0, 3.0], [2.0, 1.0, 3.0]]);"
         self.assertEquals(scad.strip(), answer)
 
+    def test_pipe(self):
+        Pipe()
+
     def _test_octohedron(self):
         Octohedron()
         octo = Octohedron(h=1, center=True)
