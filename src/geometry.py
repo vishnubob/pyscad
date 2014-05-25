@@ -5,14 +5,18 @@ import math
 import inspect
 import sys
 
+class Pipe(SCAD_Object):
+    Defaults = {
+        "inner": {"type": Cylinder},
+        "outer": {"type": Cylinder},
+    }
+    def get_scad(self):
+        return Difference()(self.outer, sef.inner)
+
 class Octohedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
         "center": {"type": bool, "default": False},
-    }
-    Aliases = {
-        'h': "height",
-        'e': "edge",
     }
     def get_edge(self):
         return self.height / (math.sqrt(3.0) / 2.0)
@@ -54,10 +58,6 @@ class Tetrahedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
         "center": {"type": bool, "default": False},
-    }
-    Aliases = {
-        'h': "height",
-        'e': "edge",
     }
     def get_edge(self):
         return self.height / math.sqrt(2.0 / 3.0)
@@ -108,22 +108,6 @@ def pyramid(height, width=None, depth=None, center=False):
         cv = (height / 2, width / 2, depth / 2)
         points = [subtract_vector(vv, cv) for vv in points]
     return polyhedron(points=list(points), faces=list(faces))
-
-def tube(name, height, outer_dia, inner_dia, segments=None):
-    msg = "Tube [%s]: Dia: inner=%.4f outer=%.4f, Height: %.4f" % (name, inner_dia, outer_dia, height)
-    logger.debug(msg)
-    return difference() (
-        cylinder(h=height, r=outer_dia / 2.0, segments=segments),
-        cylinder(h=height, r=inner_dia / 2.0, segments=segments)
-    )
-
-def tube2(name, height, outer_dia1, inner_dia1, outer_dia2, inner_dia2, segments=None):
-    msg = "Tube2 [%s]: Dia1: inner=%.4f outer=%.4f, Dia2: inner=%.4f outer=%.4f, Height: %.4f" % (name, inner_dia1, outer_dia1, inner_dia2, outer_dia2, height)
-    logger.debug(msg)
-    return difference() (
-        cylinder(h=height, r1=outer_dia1 / 2.0, r2=outer_dia2 / 2.0, segments=segments),
-        cylinder(h=height, r1=inner_dia1 / 2.0, r2=inner_dia2 / 2.0, segments=segments),
-    )
 
 def render_crosshairs(length=25, width=1, height=1, rad=2):
     scad = \

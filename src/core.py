@@ -30,14 +30,36 @@ class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
         'diameter': ('d', 'D', 'dia'),
         'diameter_1': ('d', 'D', 'dia', 'd1', 'D1', 'dia1'),
         'diameter_2': ('d2', 'D2', 'dia2'),
+        'edge': ('e',)
     }
 
     @classmethod
     def new_hook(cls, name, bases, ns):
+        # for all the actual keys defined in our namespace
         for key in ns["Defaults"].keys() + ns.keys():
+            # check to see if the target type of this key also has aliases
+            cobj = ns["Defaults"].get(key, None)
+            if inspect.isclass(cobj) and issubclass(cobj, BaseObject):
+                # check to see if our namespace has aliases to the
+                # inner object
+                root_aliases = ns["AliasMap"].get(key, (key + '_',))
+                # for all the known aliases of the inner object
+                for root_alias in root_aliases:
+                    # for all of the known aliased items within inner object
+                    for cobj_key in cobj.MapAliases:
+                        # for all of the known aliases of aliased items within inner object
+                        for cobj_alias in cobj.MapAliases[cobj_key]:
+                            # assign new alias that uses the combines the inner object alias
+                            # with the alias for the item within the inner object
+                            new_alias = root_alias + cobj_alias
+                            new_alias_key = "%s.%s" % (cobj_key, cobj_key)
+                            if new_alias not in ns["Aliases"]
+                            ns["Aliases"][new_alias] = [new_alias_key]
+            # local namespace aliases
             for alias in cls.GlobalAliases.get(key, ()):
                 if alias not in ns["Aliases"]:
                     ns["Aliases"][alias] = key
+        # sweep up any pure aliases
         changed = 1
         while changed:
             changed = 0
