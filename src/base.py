@@ -104,7 +104,6 @@ class BaseObject(object):
     Defaults = {}
     Aliases = {}
     Reserved = {
-        "parent": {"type": type, "default": None, "cast": False}, 
         "stack": {"type": list},
         "children": {"type": set},
         "name": {"type": str}
@@ -147,7 +146,6 @@ class BaseObject(object):
         state = {}
         state["__stack__"] = self.stack
         state["__children__"] = self.children
-        state["__parent__"] = self.parent
         state["__name__"] = self.name
         state["__namespace__"] = dict(self)
         return obj
@@ -155,7 +153,6 @@ class BaseObject(object):
     def __setstate__(self, state):
         self.stack = state["__stack__"]
         self.children = state["__children__"]
-        self.parent = state["__parent__"]
         self.name = state["__name__"]
         self.update(state["__namespace__"])
 
@@ -202,11 +199,6 @@ class BaseObject(object):
         key = self.Aliases.get(key, key)
         if '.' in key:
             return self.resolve(key)
-        if self.parent:
-            try:
-                return getattr(self.parent, key)
-            except AttributeError:
-                pass
         return super(BaseObject, self).__getattribute__(key)
 
     def __setitem__(self, key, val):
@@ -234,10 +226,10 @@ class BaseObject(object):
         return tuple(self.__children__)
 
     def set_children(self, children):
+        if isinstance(children, BaseObject):
+            children = (children,)
         self.disown_children()
         self.__children__ = set(children)
-        for child in self.__children__:
-            child.parent = self
     children = property(get_children, set_children)
 
     def iter_children(self):
@@ -250,31 +242,15 @@ class BaseObject(object):
         return [getattr(child, callname)(*args, **kw) for child in self.children if predicate(child)]
 
     def add_child(self, child):
-        if child.parent != self:
-            child.parent = self
         self.__children__.add(child)
 
     def remove_child(self, child):
         self.__children__.remove(child)
-        child.__parent__ = None
 
     def disown_children(self):
         for child in self.children[:]:
             self.remove_child(child)
 
-    # parent
-    def get_parent(self):
-        return self.__parent__
-
-    def set_parent(self, parent):
-        if self.__parent__ and (self in self.__parent__.children):
-            self.__parent__.remove_child(self)
-        assert self.__parent__ == None
-        self.__parent__ = parent
-        if self not in self.parent.children:
-            parent.add_child(self)
-    parent = property(get_parent, set_parent)
-    
     # stack
     def get_stack(self):
         return tuple(self.__stack__)

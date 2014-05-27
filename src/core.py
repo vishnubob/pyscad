@@ -76,11 +76,15 @@ class SCAD_Primitive(SCAD_Object):
             return str(list(arg))
         if isinstance(arg, bool):
             return str(arg).lower()
-        return str(arg)
+        return arg
+
+    def render_args(self):
+        args = self.get_scad_args()
+        ret = str.join(', ', [self.translate_arg_to_scad(arg) for arg in args])
+        return ret
 
     def render_scad(self, margin=4, level=0):
-        args = [self.translate_arg_to_scad(arg) for arg in self.get_scad_args()]
-        args = str.join(', ', args)
+        args = self.render_args()
         macros = {
             "name": self.SCAD_Name,
             "margin": (' ' * margin) * level,
@@ -265,16 +269,11 @@ class RadialResolution(SCAD_Primitive):
         return ret
     
     def get_fragments(self, length, angle=360):
-        if self.fn:
-            return self.fn
-        # minimum angle
-        fragments = angle / self.fa
-        fragment_length = length / fragments
-        if fragment_length < self.fs:
-            # minimum size of a fragment 
-            fragments = length / self.fs
-        return int(math.floor(fragments))
+        if self.fn > 0:
+            fragments = max(self.fn, 3)
+        else:
+            fragments = math.ceil(max(min(angle / self.fa, length / self.fs), 5))
+        return int(fragments)
 
 def render(scene, **kw):
     OpenSCAD(**kw).render(scene)
-

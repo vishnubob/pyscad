@@ -139,11 +139,6 @@ class Cube(SCAD_Primitive):
 
 class Cylinder(SCAD_Primitive):
     SCAD_Name = "cylinder"
-    Aliases = {
-        'fn': 'resolution.fn',
-        'fa': 'resolution.fa',
-        'fs': 'resolution.fs',
-    }
     Defaults = {
         "radius_1": {"type": float, "default": 1.0},
         "radius_2": {"type": float, "default": None},

@@ -13,28 +13,17 @@ def open_scad_exe():
     return scad.command
 
 class TestBase(unittest.TestCase):
-    def setUp(self):
+    def test_children(self):
         self.parent_1 = BaseObject(name="parent_1")
         self.parent_2 = BaseObject(name="parent_2")
         self.child_1 = BaseObject(name="child_1")
         self.child_2 = BaseObject(name="child_2")
-        self.child_3 = BaseObject(name="child_3")
-        self.child_4 = BaseObject(name="child_4")
-        self.child_5 = BaseObject(name="child_5")
-        self.child_6 = BaseObject(name="child_6")
-        self.parent_1.children = (self.child_1, self.child_2, self.child_3)
-        self.parent_2.children = (self.child_4, self.child_5, self.child_6)
-
-    def test_parent_child(self):
+        self.parent_1.children = (self.child_1)
+        self.parent_2.children = (self.child_1, self.child_2)
         self.assertIn(self.child_1, self.parent_1.children)
-        self.assertIn(self.child_2, self.parent_1.children)
-        self.assertNotIn(self.child_4, self.parent_1.children)
-        self.assertEquals(self.child_1.parent, self.parent_1)
-        self.assertNotEquals(self.child_4.parent, self.parent_1)
-        self.parent_2.add_child(self.child_1)
-        self.assertNotIn(self.child_1, self.parent_1.children)
+        self.assertNotIn(self.child_2, self.parent_1.children)
         self.assertIn(self.child_1, self.parent_2.children)
-        self.assertEquals(self.child_1.parent, self.parent_2)
+        self.assertIn(self.child_2, self.parent_2.children)
 
 class TestRadialResolution(unittest.TestCase):
     def test_cylinder_radial_resolution_scad(self):
@@ -184,6 +173,15 @@ class TestGeometry(unittest.TestCase):
         scad = pie.render_scad()
         answer = ""
         self.assertEquals(scad.strip(), answer)
+
+    def test_arc(self):
+        Arc()
+        arc = Arc(height=4, iR=4, oR=8, center=True)
+        self.assertEquals(arc.h, 4.0)
+        #arc.render()
+        #scad = pie.render_scad()
+        #answer = ""
+        #self.assertEquals(scad.strip(), answer)
 
     def test_tetrahedron(self):
         Tetrahedron()

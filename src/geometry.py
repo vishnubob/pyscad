@@ -15,7 +15,7 @@ class Pipe(SCAD_Object):
         'i': 'inner',
         'o': 'outer'
     }
-    def render_scad(self):
+    def render_scad(self, *args, **kw):
         return Difference()(self.outer, self.inner).render_scad()
     def get_height(self):
         return self.inner.height
@@ -24,14 +24,20 @@ class Pipe(SCAD_Object):
         self.outer.height = height
     height = property(get_height, set_height)
 
-class PieSlice(SCAD_Object):
+class SemiCylinder(SCAD_Object):
     Defaults = {
         "angle": {"type": float, "default":180},
         "phase": {"type": float},
-        "radius": {"type": float},
-        "height": {"type": float},
-        "resolution": {"type": RadialResolution},
+        "radius": {"type": float, "default": 1.0},
+        "center": {"type": bool, "default": False},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
+        "height": {"type": float, "default": 1.0},
     }
+
+    def _xy_angle(self, angle):
+        x = math.cos(math.radians(angle)) * self.radius
+        y = math.sin(math.radians(angle)) * self.radius
+        return (x, y)
 
     @property
     def points(self):
@@ -42,33 +48,38 @@ class PieSlice(SCAD_Object):
         angle_step = self.angle / fragments if fragments else 0
         points = []
         rem = (self.angle - fragments * angle_step) / 2.0
-        x = math.cos(math.radians(self.phase)) * self.radius
-        y = math.sin(math.radians(self.phase)) * self.radius
-        points.append([x, y])
+        points.append(self._xy_angle(self.phase))
         for fragment in range(fragments):
             step = fragment * angle_step + self.phase + rem
-            x = math.cos(math.radians(step)) * self.radius
-            y = math.sin(math.radians(step)) * self.radius
-            points.append([x, y])
-        x = math.cos(math.radians(self.angle + self.phase)) * self.radius
-        y = math.sin(math.radians(self.angle + self.phase)) * self.radius
-        points.append([x, y])
+            points.append(self._xy_angle(step))
+        points.append(self._xy_angle(self.angle + self.phase))
         return ListVector2D(points)
 
-    def render_scad(self):
+    def render_scad(self, *args, **kw):
+        scad = ''
         ret = Polygon(points=self.points)
         if self.height:
             ret = LinearExtrude(height=self.height)(ret)
-        print ret.__dict__
         return ret.render_scad()
 
-class SemiCylinder(Cylinder):
+class Arc(SCAD_Object):
     Defaults = {
-        "angle": {"type": float, "default":180},
-        "phase": {"type": float},
+        "inner": {"type": SemiCylinder},
+        "outer": {"type": SemiCylinder},
+        "_height": {"type": int},
     }
-    def render_scad(self):
-        return Difference()(self, self.inner).render_scad()
+    Aliases = {
+        'i': 'inner',
+        'o': 'outer'
+    }
+    def render_scad(self, *args, **kw):
+        return Difference()(self.outer, self.inner).render_scad()
+    def get_height(self):
+        return self.inner.height
+    def set_height(self, height):
+        self.inner.height = height
+        self.outer.height = height
+    height = property(get_height, set_height)
 
 class Octohedron(SCAD_Object):
     Defaults = {
@@ -108,7 +119,7 @@ class Octohedron(SCAD_Object):
     def triangle_height(self):
         return self.edge * (math.sqrt(3.0) / 2.0)
 
-    def render_scad(self):
+    def render_scad(self, *args, **kw):
         return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
 
 class Tetrahedron(SCAD_Object):
@@ -143,7 +154,7 @@ class Tetrahedron(SCAD_Object):
     def faces(self):
         return ListVector3D([[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]])
 
-    def render_scad(self):
+    def render_scad(self, *args, **kw):
         return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
 
 """
