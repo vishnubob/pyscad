@@ -222,7 +222,7 @@ class OpenSCAD(SCAD_Primitive):
         else:
             return "openscad"
 
-    def render(self, scene, output=None, **kw):
+    def render(self, scene, output=None, background=False, **kw):
         scad = scene.render_scad()
         if output and os.path.splitext(output)[-1].lower() == ".scad":
             with open(output, 'w') as f:
@@ -239,6 +239,8 @@ class OpenSCAD(SCAD_Primitive):
                 os.close(fh)
                 self.input = fn
                 cli = self.render_command_line()
+                if background:
+                    cli += "; rm %s &" % fn
                 msg = "executing '%s'" % cli
                 logger.debug(msg)
                 retcode = os.system(cli)
@@ -246,7 +248,8 @@ class OpenSCAD(SCAD_Primitive):
                     msg = "OpenSCAD returned a non-zero exit code (%s)" % retcode
                     logger.error(msg)
             finally:
-                os.unlink(fn)
+                if not background:
+                    os.unlink(fn)
         finally:
             self.pop()
 

@@ -20,7 +20,8 @@ class Pipe(SCAD_Object):
     def get_height(self):
         return self.inner.height
     def set_height(self, height):
-        self.inner.height = height
+        # XXX: hack for CGAL optimization?
+        self.inner.height = height + 0.01
         self.outer.height = height
     height = property(get_height, set_height)
 
@@ -203,5 +204,13 @@ def render_crosshairs(length=25, width=1, height=1, rad=2):
 # auto generate __all__
 #
 
-_current_module = sys.modules[__name__]
-__all__ = [name for (name, obj) in globals().items() if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Object)]
+def init_module():
+    _current_module = sys.modules[__name__]
+    ret = []
+    for (name, obj) in globals().items():
+        if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Object):
+            setattr(_current_module, name.lower(), getattr(_current_module, name))
+            ret.extend((name, name.lower()))
+    return ret
+
+__all__ = init_module()

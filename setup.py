@@ -11,7 +11,6 @@ sctk = {
     "package_dir": {"scad": "src"},
     "py_modules":[
         "scad.__init__", 
-        "scad.api", 
         "scad.base", 
         "scad.color", 
         "scad.colornames",

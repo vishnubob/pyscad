@@ -40,8 +40,8 @@ class Difference(SCAD_Primitive):
 class Intersection(SCAD_Primitive):
     SCAD_Name = "intersection"
 
-class Minowski(SCAD_Primitive):
-    SCAD_Name = "minowski"
+class Minkowski(SCAD_Primitive):
+    SCAD_Name = "minkowski"
 
 class Hull(SCAD_Primitive):
     SCAD_Name = "hull"
@@ -51,6 +51,9 @@ class Render(SCAD_Primitive):
 
 class Rotate(Vector3D_SCAD_Primitive):
     SCAD_Name = "rotate"
+
+class Scale(Vector3D_SCAD_Primitive):
+    SCAD_Name = "scale"
 
 class Translate(Vector3D_SCAD_Primitive):
     SCAD_Name = "translate"
@@ -201,5 +204,13 @@ class Sphere(SCAD_Primitive):
 # auto generate __all__
 #
 
-_current_module = sys.modules[__name__]
-__all__ = [name for (name, obj) in globals().items() if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Primitive)]
+def init_module():
+    _current_module = sys.modules[__name__]
+    ret = []
+    for (name, obj) in globals().items():
+        if (inspect.getmodule(obj) == _current_module) and inspect.isclass(obj) and issubclass(obj, SCAD_Primitive):
+            setattr(_current_module, name.lower(), getattr(_current_module, name))
+            ret.extend((name, name.lower()))
+    return ret
+
+__all__ = init_module()
