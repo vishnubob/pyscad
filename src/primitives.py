@@ -111,6 +111,35 @@ class LinearExtrude(SCAD_Primitive):
             args.append(("convexity", self.convexity))
         return args
 
+class Include(SCAD_Primitive):
+    SCAD_Name = "include"
+    Defaults = {
+        "filename": {"type": str},
+    }
+
+    def render_scad(self, margin=4, level=0):
+        macros = {
+            "filename": self.filename,
+            "margin": ' ' * margin,
+        }
+        scad = "%(margin)sinclude <%(filename)s>;\n%(body)s"
+        macros["body"] = str.join('\n', [child.render_scad(margin, level + 1) for child in self.children])
+        return scad % macros
+
+class Inline(SCAD_Primitive):
+    SCAD_Name = "__inline__"
+    Defaults = {
+        "code": {"type": str},
+    }
+
+    def render_scad(self, margin=4, level=0):
+        macros = {
+            "code": self.code,
+            "margin": ' ' * margin,
+        }
+        scad = "%(margin)s%(code)s\n"
+        return scad % macros
+
 class Cube(SCAD_Primitive):
     SCAD_Name = "cube"
     Aliases = {
