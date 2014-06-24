@@ -93,9 +93,9 @@ def make_hook():
 
     #return LinearExtrude(h=hook_width)( Polygon(points=points) )
     #return Union()(
-    return Union()(
+    return Minkowski()(
         #Translate(z=hook_width/2)( Sphere(d=in2mm(.25), fn=20) ),
-        Translate(z=hook_width/2)( Cylinder(d=in2mm(.25), h=1, fn=8) ),
+        Translate(z=hook_width/2, y=.26)( Cylinder(d=in2mm(.25), h=1, fn=20) ),
         LinearExtrude(h=hook_width)( Polygon(points=points) ))
 
 def make_hook_plate():
@@ -140,9 +140,7 @@ hook_plate = Rotate(x=-90, z=180)( make_hook_plate() )
 
 hook_plate.render("hook_plate.scad")
 #hook_plate.render("hook_plate.stl")
-
 base_pole.render("base_pole.scad")
-
 hanger.render("wire_shelf_hanger.scad")
 both_printable.render("printable_wire_shelf_hanger.scad")
 #both_printable.render("printable_wire_shelf_hanger.stl")

@@ -4,6 +4,7 @@ from utils import *
 from color import *
 from vector import *
 from geometry import *
+from threads import *
 
 import logging
 

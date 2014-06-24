@@ -35,10 +35,10 @@ def load_json(json_fn):
     obj = json.loads(content)
     return obj
 
-def in2mm(inches):
+def inch2mm(inches):
     return inches / 0.0393701
 
-def mm2in(mm):
+def mm2inch(mm):
     return mm * 0.0393701
 
 # http://stackoverflow.com/questions/1724693/find-a-file-in-python

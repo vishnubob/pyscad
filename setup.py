@@ -18,6 +18,7 @@ sctk = {
         "scad.geometry", 
         "scad.utils", 
         "scad.vector", 
+        "scad.threads", 
     ],
     "version": "0.1",
 }

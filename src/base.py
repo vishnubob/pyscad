@@ -105,7 +105,7 @@ class BaseObject(object):
     Aliases = {}
     Reserved = {
         "stack": {"type": list},
-        "children": {"type": set},
+        "children": {"type": list},
         "name": {"type": str}
     }
 
@@ -133,9 +133,6 @@ class BaseObject(object):
         if type(default) == types.FunctionType:
             default = default()
         return default
-
-    def __call__(self, *args, **kw):
-        pass
 
     # dict / object interface
     def update(self, ref):
@@ -229,7 +226,7 @@ class BaseObject(object):
         if isinstance(children, BaseObject):
             children = (children,)
         self.disown_children()
-        self.__children__ = set(children)
+        self.__children__ = list(children)
     children = property(get_children, set_children)
 
     def iter_children(self):
@@ -241,15 +238,8 @@ class BaseObject(object):
         predicate = predicate or default_predicate
         return [getattr(child, callname)(*args, **kw) for child in self.children if predicate(child)]
 
-    def add_child(self, child):
-        self.__children__.add(child)
-
-    def remove_child(self, child):
-        self.__children__.remove(child)
-
     def disown_children(self):
-        for child in self.children[:]:
-            self.remove_child(child)
+        self.__children__ = list()
 
     # stack
     def get_stack(self):
