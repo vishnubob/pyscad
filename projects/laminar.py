@@ -61,12 +61,12 @@ def circle_pack(clip, radius=1):
         yield {'x': x, 'y': y}
 
 class LaminarJet(SCAD_Object):
-    body_length = 200
-    body_radius = 100
+    body_length = 50
+    body_radius = 50
     body_thickness = 2
     body_inner_radius = body_radius - body_thickness
     # inlet
-    inlet_length = 100
+    inlet_length = 60
     inlet_inner_radius = 26.99 / 2.0
     inlet_thickness = body_thickness
     inlet_radius = inlet_inner_radius + inlet_thickness
@@ -145,18 +145,23 @@ class LaminarJet(SCAD_Object):
         threads = Inline(code=scad)
         threads = self.thread_transform(threads)
         return threads
+    
+    @property
+    def straws(self):
+        body = Cylinder(h=2, d=7, fn=20, center=True)
+        straw = Cylinder(h=10, d=2, fn=20)
+        straws = [Translate(**coords)(straw) for coords in circle_pack(circle_clip(self.body_inner_radius), 1)]
+        return Union()( *straws )
 
     def render_scad(self, *args, **kw):
         body = Difference()(self.body, self.inlet_outer)
         inlet = Difference()(self.inlet, self.inner_body)
-        jet = Union()( body, self.endcap, inlet, self.threads, self.washer_block )
+        jet = Union()( body, self.endcap, inlet, self.threads, self.washer_block, self.straws )
+        jet = Union()( self.threads, inlet )
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
 
-body = Cylinder(h=2, d=7, fn=20, center=True)
-straw = Cylinder(h=10, d=2, fn=20)
-straws = [Translate(**coords)(straw) for coords in circle_pack(circle_clip(100), 1)]
 #scene = Difference() (body, *straws)
 jet = LaminarJet()
 scene = jet
