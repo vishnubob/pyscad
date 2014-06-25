@@ -67,7 +67,8 @@ class LaminarJet(SCAD_Object):
     body_inner_radius = body_radius - body_thickness
     # inlet
     inlet_length = 60
-    inlet_inner_radius = 26.99 / 2.0
+    #inlet_inner_radius = 26.99 / 2.0
+    inlet_inner_radius = 27.99 / 2.0
     inlet_thickness = body_thickness
     inlet_radius = inlet_inner_radius + inlet_thickness
     # washer block
@@ -75,8 +76,8 @@ class LaminarJet(SCAD_Object):
     washer_block_inner_rad = 6
     washer_block_thickness = 2
     washer_block_offset = 4
-    # threads
-    thread_length = 10
+    # hose threads
+    hose_thread_length = 10
 
     def body_transform(self, body):
         body = Translate(z=self.body_thickness)( body )
@@ -88,10 +89,14 @@ class LaminarJet(SCAD_Object):
         #inlet = self.body_transform(inlet)
         return inlet
 
-    def thread_transform(self, threads):
-        threads = self.inlet_transform(threads)
-        threads = Translate(y=-self.inlet_length + self.thread_length - 1.3)(threads)
-        return threads
+    def hose_thread_transform(self, hose_threads):
+        hose_threads = self.inlet_transform(hose_threads)
+        hose_threads = Translate(y=-self.inlet_length + self.hose_thread_length - 1.3)(hose_threads)
+        return hose_threads
+
+    def body_thread_transform(self, body_threads):
+        body_threads = Translate(z=self.body_length - self.hose_thread_length + 2)(body_threads)
+        return body_threads
 
     @property
     def inlet_outer(self):
@@ -107,25 +112,25 @@ class LaminarJet(SCAD_Object):
 
     @property
     def inlet(self):
-        inlet = Pipe(h=self.inlet_length, iR=self.inlet_inner_radius, oR=self.inlet_radius)
+        inlet = Pipe(h=self.inlet_length, iR=self.inlet_inner_radius, oR=self.inlet_radius, ifn=200, ofn=200)
         inlet = self.inlet_transform(inlet)
         return inlet
     
     @property
     def endcap(self):
-        endcap = Cylinder(h=self.body_thickness, r=self.body_radius)
+        endcap = Cylinder(h=self.body_thickness, r=self.body_radius, fn=200)
         return endcap
     
     @property
     def washer_block(self):
         washer_block = Pipe(h=self.washer_block_length, ir=self.washer_block_inner_rad, oR=self.inlet_radius)
-        washer_block = self.thread_transform(washer_block)
+        washer_block = self.hose_thread_transform(washer_block)
         washer_block = Translate(y=self.washer_block_offset)( washer_block )
         return washer_block
 
     @property
     def body(self):
-        body = Pipe(h=self.body_length, ir=self.body_inner_radius, oR=self.body_radius)
+        body = Pipe(h=self.body_length, ir=self.body_inner_radius, oR=self.body_radius, ifn=200, ofn=200)
         body = self.body_transform(body)
         return body
 
@@ -140,11 +145,18 @@ class LaminarJet(SCAD_Object):
         return body
 
     @property
-    def threads(self):
-        scad = "thread_in_pitch(%s,%s,2.2,100);" % (self.inlet_inner_radius * 2.0, self.thread_length)
-        threads = Inline(code=scad)
-        threads = self.thread_transform(threads)
-        return threads
+    def hose_threads(self):
+        scad = "thread_in_pitch(%s, %s, 2.2, 200);" % (self.inlet_inner_radius * 2.0, self.hose_thread_length)
+        hose_threads = Inline(code=scad)
+        hose_threads = self.hose_thread_transform(hose_threads)
+        return hose_threads
+    
+    @property
+    def body_threads(self):
+        scad = "thread_out_pitch(%s, %s, 2.2, 200);" % (self.body_radius * 2.0 + 2, self.hose_thread_length)
+        body_threads = Inline(code=scad)
+        body_threads = self.body_thread_transform(body_threads)
+        return body_threads
     
     @property
     def straws(self):
@@ -156,8 +168,7 @@ class LaminarJet(SCAD_Object):
     def render_scad(self, *args, **kw):
         body = Difference()(self.body, self.inlet_outer)
         inlet = Difference()(self.inlet, self.inner_body)
-        jet = Union()( body, self.endcap, inlet, self.threads, self.washer_block, self.straws )
-        jet = Union()( self.threads, inlet )
+        jet = Union()( body, self.endcap, inlet, self.hose_threads, self.washer_block, self.body_threads )
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
@@ -165,6 +176,4 @@ class LaminarJet(SCAD_Object):
 #scene = Difference() (body, *straws)
 jet = LaminarJet()
 scene = jet
-#threads = english_thread(1.0625, 11.5, 1, internal=True)
-#scene = Difference() (Cylinder(d=inch2mm(1.2), h=inch2mm(.9)), threads)
 scene.render("ljet.scad")
