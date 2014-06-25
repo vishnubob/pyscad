@@ -115,7 +115,7 @@ class LaminarJetObject(SCAD_Object):
 
 
 class LaminarJetMiddle(LaminarJetObject):
-    body_length = 4
+    body_length = 10
     collar_length = 12
     collar_inner_radius = LaminarJetObject.body_radius + 1
     collar_radius = collar_inner_radius + LaminarJetObject.body_thickness
@@ -127,8 +127,9 @@ class LaminarJetMiddle(LaminarJetObject):
     @property
     def collar(self):
         collar1 = Pipe(h=self.collar_length, ir=self.collar_inner_radius, oR=self.collar_radius, ifn=200, ofn=200)
-        collar2 = Pipe(h=2, ir=self.body_inner_radius, oR=self.collar_radius, ifn=200, ofn=200)
+        collar2 = Pipe(h=2, ir=self.body_inner_radius, oR=self.collar_radius, oR2=self.body_radius, ifn=200, ofn=200)
         collar2 = Translate(z=self.collar_length)( collar2 )
+        collar = collar2
         collar = Union()(collar1, collar2)
         return collar
 
@@ -141,6 +142,7 @@ class LaminarJetMiddle(LaminarJetObject):
 
     def render_scad(self, *args, **kw):
         jet = Union()( self.body, self.body_in_threads, self.collar )
+        jet = Union()( self.body_in_threads, self.collar )
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
