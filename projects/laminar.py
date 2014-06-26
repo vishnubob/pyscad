@@ -3,6 +3,16 @@
 import math
 from scad import *
 
+def from_polar(radius, angle):
+    x = radius * math.cos(angle)
+    y = radius * math.sin(angle)
+    return (x, y)
+
+def to_polar(x, y):
+    radius = math.sqrt(x ** 2 + y ** 2)
+    angle = math.atan2(y, x)
+    return (radius, angle)
+
 class LaminarJetObject(SCAD_Object):
     body_length = 50
     body_radius = 50
@@ -12,6 +22,10 @@ class LaminarJetObject(SCAD_Object):
     thread_pitch = 2.2
     # inlet hose thread length
     body_thread_length = 10
+    # collar
+    collar_length = 12
+    collar_inner_radius = body_radius + 1
+    collar_radius = collar_inner_radius + body_thickness
 
     ##
     ## Body
@@ -19,7 +33,8 @@ class LaminarJetObject(SCAD_Object):
         return body
     
     def body_out_thread_transform(self, body_threads):
-        body_threads = Translate(z=self.body_length - self.body_thread_length + 2)(body_threads)
+        body_threads = self.body_transform(body_threads)
+        body_threads = Translate(z=self.body_length - self.body_thread_length)(body_threads)
         return body_threads
 
     def body_in_thread_transform(self, body_threads):
@@ -56,43 +71,6 @@ class LaminarJetObject(SCAD_Object):
         body_threads = self.body_in_thread_transform(body_threads)
         return body_threads
 
-class LaminarJetMiddle(LaminarJetObject):
-    straw_radius = 4
-    body_length = 10
-    collar_length = 12
-    collar_inner_radius = LaminarJetObject.body_radius + 1
-    collar_radius = collar_inner_radius + LaminarJetObject.body_thickness
-
-    def body_transform(self, body):
-        body = Translate(z=self.body_thread_length)( body )
-        return body
-
-    def circle_pack(self, clip_radius, circle_radius):
-        def is_clipped(x, y):
-            return \
-                ((x - clip_radius + circle_radius) ** 2 + (y - clip_radius - circle_radius) ** 2) > (clip_radius ** 2) or \
-                ((x - clip_radius - circle_radius) ** 2 + (y - clip_radius + circle_radius) ** 2) > (clip_radius ** 2) or \
-                ((x - clip_radius + circle_radius) ** 2 + (y - clip_radius + circle_radius) ** 2) > (clip_radius ** 2) or \
-                ((x - clip_radius - circle_radius) ** 2 + (y - clip_radius - circle_radius) ** 2) > (clip_radius ** 2) 
-        angle = math.radians(60)
-        yoff = math.sin(angle) * (circle_radius * 2)
-        xoff = math.cos(angle) * (circle_radius * 2)
-        offset = 0
-        x = y = 0
-        while 1:
-            if y > (clip_radius * 2):
-                raise StopIteration
-            x += circle_radius * 2
-            if x > (clip_radius * 2):
-                y += yoff
-                x = 0
-                offset += 1
-                if (offset % 2):
-                    x += xoff
-            if is_clipped(x, y):
-                continue
-            yield {'x': x - clip_radius, 'y': y - clip_radius}
-
     @property
     def collar(self):
         collar1 = Pipe(h=self.body_thread_length, ir=self.collar_inner_radius, oR=self.collar_radius, ifn=200, ofn=200)
@@ -101,20 +79,88 @@ class LaminarJetMiddle(LaminarJetObject):
         collar = Union()(collar1, collar2)
         return collar
 
+class LaminarJetNozzle(LaminarJetObject):
+    body_length = 10
+    nozzle_radius = 9.55 / 2.0
+
+    def body_transform(self, body):
+        body = Translate(z=self.body_thread_length)( body )
+        return body
+
+    def frontcap_transform(self, frontcap):
+        frontcap = self.body_transform(frontcap)
+        frontcap = Translate(z=self.body_length)(frontcap)
+        return frontcap
+
+    @property
+    def nozzle(self):
+        nozzle = Cylinder(h=self.body_thickness + 0.1, r1=self.nozzle_radius, r2=self.nozzle_radius * 1.6, fn=200)
+        nozzle = self.frontcap_transform(nozzle)
+        nozzle = Translate(z=-.05)(nozzle)
+        return nozzle
+
+    @property
+    def frontcap(self):
+        frontcap = Cylinder(h=self.body_thickness, r=self.body_radius, fn=200)
+        frontcap = self.frontcap_transform(frontcap)
+        frontcap = Difference()( frontcap, self.nozzle )
+        return frontcap
+
+    def render_scad(self, *args, **kw):
+        nozzle = Union()( self.body, self.body_in_threads, self.collar, self.frontcap )
+        nozzle = Rotate(y=180)(nozzle)
+        nozzle = Include(filename="ISOThread.scad")( nozzle )
+        return nozzle.render_scad()
+
+class LaminarJetMiddle(LaminarJetObject):
+    straw_radius = 2.0
+    body_length = 40
+    center_shaft_radius = 9.55 / 2.0
+
+    def body_transform(self, body):
+        body = Translate(z=self.body_thread_length)( body )
+        return body
+
+    def pack_straws(self):
+        def is_clipped(x, y, r):
+            return (x ** 2 + y ** 2) > (r ** 2)
+        idx = 0
+        constant = self.straw_radius * 1.5
+        while 1:
+            radius = constant * math.sqrt(idx)
+            angle = idx * math.radians(137.5)
+            idx += 1
+            (x, y) = from_polar(radius, angle)
+            if not is_clipped(x, y, self.center_shaft_radius + self.straw_radius * 1.2):
+                continue
+            if is_clipped(x, y, self.body_inner_radius - self.straw_radius - self.body_thickness):
+                break
+            yield {'x': x, 'y': y}
+
     @property
     def straws(self):
-        straw = Cylinder(h=20, r=self.straw_radius, fn=20)
-        straws = [Translate(**coords)(straw) for coords in self.circle_pack(self.body_inner_radius, self.straw_radius + 0.2)]
+        straw = Cylinder(h=self.body_length + 2, r=self.straw_radius, fn=20)
+        center_shaft = Cylinder(h=self.body_length + 2, r=self.center_shaft_radius, fn=100)
+        straws = [center_shaft]
+        straws += [Translate(**coords)(straw) for coords in self.pack_straws()]
         straw_count = len(straws)
         straws = Translate(z=-1)(straws)
         print "generated %d straws" % straw_count
         return straws
 
+    """
+    @property
+    def outer_body(self):
+        body = Cylinder(h=self.body_length - self.body_thread_length, r=self.body_radius, fn=200)
+        return body
+    """
+
     def render_scad(self, *args, **kw):
-        straws = Union()( self.inner_body, self.straws )
-        straws = Difference()( self.inner_body, self.straws )
-        jet = Union()( self.body, self.body_in_threads, self.collar, straws )
-        jet = straws
+        #straws = Union()( self.inner_body, self.straws )
+        #straws = Difference()( self.outer_body, self.straws )
+        #straws = self.body_transform(straws)
+        #jet = Union()( self.body, self.body_in_threads, self.collar, straws, self.body_out_threads )
+        jet = Union()( self.body, self.body_in_threads, self.collar, self.body_out_threads )
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
@@ -203,4 +249,6 @@ class LaminarJetBase(LaminarJetObject):
 base = LaminarJetBase()
 base.render("laminar_jet_base.scad")
 middle = LaminarJetMiddle()
-middle.render("laminar_jet_middle2.scad")
+middle.render("laminar_jet_middle.scad")
+nozzle = LaminarJetNozzle()
+nozzle.render("laminar_jet_nozzle.scad")
