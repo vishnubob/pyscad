@@ -15,8 +15,8 @@ def to_polar(x, y):
 
 class LaminarJetObject(SCAD_Object):
     body_length = 50
-    body_radius = inch2mm(3.5 - 0.1) / 2.0 - 1
-    body_thread_radius = inch2mm(3.5) / 2.0 - 1
+    body_radius = inch2mm(3.5 - 0.1) / 2.0 - 2
+    body_thread_radius = inch2mm(3.5) / 2.0 - 2
     body_thickness = inch2mm(0.216)
     body_inner_radius = body_radius - body_thickness
     # threads
@@ -61,7 +61,7 @@ class LaminarJetObject(SCAD_Object):
 
     @property
     def body_out_threads(self):
-        scad = "thread_out_pitch(%s, %s, %s, 100);" % (self.body_thread_radius * 2.0, self.body_thread_length, self.body_thread_pitch)
+        scad = "thread_out_pitch(%s, %s, %s, 100, true);" % (self.body_thread_radius * 2.0, self.body_thread_length, self.body_thread_pitch)
         body_threads = Inline(code=scad)
         body_threads = self.body_out_thread_transform(body_threads)
         return body_threads
@@ -246,9 +246,82 @@ class LaminarJetBase(LaminarJetObject):
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
+class LaminarJetStem(LaminarJetObject):
+    rod_radius = 9.6 / 2.0
+    oring_width = 2
+    stem_length = 12
+    stem_thickness = 2
+    #stem_radius = rod_radius + stem_thickness
+    stem_radius = 13.9 / 2.0
+    stem_inner_radius = rod_radius
+    stem_thread_length = stem_length - oring_width
+    stem_thread_radius = stem_radius + 0.9
+    stem_thread_pitch = 2.2
+    stem_nut_length = stem_length + 1.5
+    stem_nut_inner_radius = stem_thread_radius + 0.1
+    stem_nut_radius = stem_nut_inner_radius + 3.5
+    stem_nut_block_length = 2
+    stem_nut_length = stem_length - stem_thickness
+
+    @property
+    def stem_out_threads(self):
+        scad = "thread_out_pitch(%s, %s, %s, 100);" % (self.stem_thread_radius * 2.0, self.stem_thread_length, self.stem_thread_pitch)
+        stem_threads = Inline(code=scad)
+        return stem_threads
+
+    @property
+    def stem_in_threads(self):
+        scad = "thread_in_pitch(%s, %s, %s, 100);" % (self.stem_thread_radius * 2.0, self.stem_thread_length, self.stem_thread_pitch)
+        stem_threads = Inline(code=scad)
+        return stem_threads
+    
+    @property
+    def stem_nut(self):
+        nut = Pipe(iR=self.stem_nut_inner_radius, oR=self.stem_nut_radius, h=self.stem_nut_length, ifn=100, ofn=6)
+        block = Pipe(iR=self.rod_radius, oR=self.stem_nut_radius, h=self.stem_nut_block_length, ifn=100, ofn=6)
+        block = Translate(z=self.stem_nut_length)(block)
+        nut = Union()(nut, block, self.stem_in_threads)
+        return nut
+    
+    @property
+    def stem_inner(self):
+        stem = Cylinder(r=self.stem_inner_radius, h=200, fn=100)
+        return stem
+        
+    @property
+    def stem(self):
+        stem = Pipe(iR=self.stem_inner_radius, oR=self.stem_radius, h=self.stem_length, ifn=100, ofn=100)
+        threads = Translate(z=self.oring_width)(self.stem_out_threads)
+        stem = Union()(stem, threads)
+        return stem
+    
+    @property
+    def test_stem(self):
+        base = Cylinder(r=10, h=2)
+        base = Difference()(base, self.stem_inner)
+        stem = Translate(z=2)(self.stem)
+        stem = Union()(stem, base)
+        stem = Include(filename="ISOThread.scad")( stem )
+        return stem
+
+    @property
+    def test_stem_nut(self):
+        stem = Include(filename="ISOThread.scad")( self.stem_nut )
+        return stem
+
+    def render_scad(self, *args, **kw):
+        stem_nut = Translate(x=20)(self.stem_nut)
+        stem = Union()(self.stem, stem_nut)
+        stem = Include(filename="ISOThread.scad")( stem )
+        return stem.render_scad()
+
 base = LaminarJetBase()
 base.render("laminar_jet_base.scad")
 middle = LaminarJetMiddle()
 middle.render("laminar_jet_middle.scad")
 nozzle = LaminarJetNozzle()
 nozzle.render("laminar_jet_nozzle.scad")
+stem = LaminarJetStem()
+stem.render("laminar_jet_stem.scad")
+stem.test_stem.render("laminar_test_stem.scad")
+stem.test_stem_nut.render("laminar_stem_nut.scad")
