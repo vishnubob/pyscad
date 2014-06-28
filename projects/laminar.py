@@ -109,7 +109,8 @@ class LaminarJetNozzle(LaminarJetObject):
         return frontcap
 
     def render_scad(self, *args, **kw):
-        nozzle = Union()( self.body, self.body_in_threads, self.collar, self.frontcap )
+        #nozzle = Union()( self.body, self.body_in_threads, self.collar, self.frontcap )
+        nozzle = Union()( self.body, self.frontcap )
         nozzle = Rotate(y=180)(nozzle)
         nozzle = Include(filename="ISOThread.scad")( nozzle )
         return nozzle.render_scad()
@@ -222,7 +223,11 @@ class LaminarJetBase(LaminarJetObject):
     
     @property
     def endcap(self):
+        stem = LaminarJetStem()
         endcap = Cylinder(h=self.endcap_thickness, r=self.body_radius, fn=200)
+        endcap = Difference()(endcap, stem.stem_inner)
+        stem = Translate(z=self.endcap_thickness)(stem.stem)
+        endcap = Union()(stem, endcap)
         return endcap
     
     @property
@@ -247,7 +252,8 @@ class LaminarJetBase(LaminarJetObject):
         return jet.render_scad()
 
 class LaminarJetStem(LaminarJetObject):
-    rod_radius = 9.6 / 2.0
+    #rod_radius = 9.6 / 2.0
+    rod_radius = 10.4 / 2.0
     oring_width = 2
     stem_length = 12
     stem_thickness = 2
@@ -258,7 +264,7 @@ class LaminarJetStem(LaminarJetObject):
     stem_thread_radius = stem_radius + 0.9
     stem_thread_pitch = 2.2
     stem_nut_length = stem_length + 1.5
-    stem_nut_inner_radius = stem_thread_radius + 0.1
+    stem_nut_inner_radius = stem_thread_radius + 0.2
     stem_nut_radius = stem_nut_inner_radius + 3.5
     stem_nut_block_length = 2
     stem_nut_length = stem_length - stem_thickness
@@ -271,16 +277,22 @@ class LaminarJetStem(LaminarJetObject):
 
     @property
     def stem_in_threads(self):
-        scad = "thread_in_pitch(%s, %s, %s, 100);" % (self.stem_thread_radius * 2.0, self.stem_thread_length, self.stem_thread_pitch)
+        scad = "thread_in_pitch(%s, %s, %s, 100);" % (self.stem_nut_inner_radius * 2.0 + .1, self.stem_thread_length, self.stem_thread_pitch)
         stem_threads = Inline(code=scad)
         return stem_threads
     
     @property
     def stem_nut(self):
         nut = Pipe(iR=self.stem_nut_inner_radius, oR=self.stem_nut_radius, h=self.stem_nut_length, ifn=100, ofn=6)
+        bevel = Cylinder(r1=self.stem_nut_inner_radius + 1, r2=self.stem_nut_inner_radius, h=2, fn=100)
+        bevel = Translate(z=self.stem_length - 1)(bevel)
         block = Pipe(iR=self.rod_radius, oR=self.stem_nut_radius, h=self.stem_nut_block_length, ifn=100, ofn=6)
         block = Translate(z=self.stem_nut_length)(block)
+        bevel = Translate(z=-self.stem_nut_length - 2)(bevel)
         nut = Union()(nut, block, self.stem_in_threads)
+        nut = Difference()(nut, bevel)
+        nut = Translate(x=25, z=-self.stem_nut_length - self.oring_width)(nut)
+        nut = Rotate(y=180)(nut)
         return nut
     
     @property
@@ -291,17 +303,20 @@ class LaminarJetStem(LaminarJetObject):
     @property
     def stem(self):
         stem = Pipe(iR=self.stem_inner_radius, oR=self.stem_radius, h=self.stem_length, ifn=100, ofn=100)
+        bevel = Pipe(iR1=self.stem_radius, iR2=self.stem_inner_radius, oR1=self.stem_radius + 2, oR2=self.stem_radius, h=1.1, ifn=100, ofn=100)
+        bevel = Translate(z=self.stem_length - 1)(bevel)
         threads = Translate(z=self.oring_width)(self.stem_out_threads)
         stem = Union()(stem, threads)
+        stem = Difference()(stem, bevel)
         return stem
     
     @property
     def test_stem(self):
-        base = Cylinder(r=10, h=2)
+        base = Cylinder(r=12, h=2, fn=6)
         base = Difference()(base, self.stem_inner)
         stem = Translate(z=2)(self.stem)
         stem = Union()(stem, base)
-        stem = Include(filename="ISOThread.scad")( stem )
+        #stem = Include(filename="ISOThread.scad")( stem )
         return stem
 
     @property
@@ -310,8 +325,8 @@ class LaminarJetStem(LaminarJetObject):
         return stem
 
     def render_scad(self, *args, **kw):
-        stem_nut = Translate(x=20)(self.stem_nut)
-        stem = Union()(self.stem, stem_nut)
+        stem_nut = self.stem_nut
+        stem = Union()(self.test_stem, stem_nut)
         stem = Include(filename="ISOThread.scad")( stem )
         return stem.render_scad()
 
