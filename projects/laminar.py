@@ -15,8 +15,8 @@ def to_polar(x, y):
 
 class LaminarJetObject(SCAD_Object):
     body_length = 50
-    body_radius = inch2mm(3.5 - 0.1) / 2.0 - 2
-    body_thread_radius = inch2mm(3.5) / 2.0 - 2
+    body_radius = inch2mm(3.5 - 0.1) / 2.0 - 1
+    body_thread_radius = inch2mm(3.5) / 2.0 - 1
     body_thickness = inch2mm(0.216)
     body_inner_radius = body_radius - body_thickness
     # threads
@@ -36,7 +36,7 @@ class LaminarJetObject(SCAD_Object):
     
     def body_out_thread_transform(self, body_threads):
         body_threads = self.body_transform(body_threads)
-        body_threads = Translate(z=self.body_length - self.body_thread_length)(body_threads)
+        body_threads = Translate(z=self.body_length - self.body_thread_length + 1)(body_threads)
         return body_threads
 
     def body_in_thread_transform(self, body_threads):
@@ -82,8 +82,25 @@ class LaminarJetObject(SCAD_Object):
         return collar
 
 class LaminarJetNozzle(LaminarJetObject):
+    body_thickness = LaminarJetObject.body_thickness
     body_length = 10
-    nozzle_radius = 9.55 / 2.0
+    body_radius_top = inch2mm(3.068) / 2.0 - 0.15
+    body_radius_bottom = inch2mm(3.068) / 2.0 - 0.5
+    body_inner_radius_top = body_radius_top - body_thickness
+    body_inner_radius_bottom = body_radius_bottom - body_thickness
+    nozzle_radius = 10 / 2.0
+    frontcap_radius = body_radius_top + body_thickness
+
+    @property
+    def body(self):
+        body = Pipe(h=self.body_length, 
+                ir2=self.body_inner_radius_top, 
+                ir1=self.body_inner_radius_bottom, 
+                or2=self.body_radius_top, 
+                or1=self.body_radius_bottom, 
+                ifn=200, ofn=200)
+        body = self.body_transform(body)
+        return body
 
     def body_transform(self, body):
         body = Translate(z=self.body_thread_length)( body )
@@ -96,14 +113,14 @@ class LaminarJetNozzle(LaminarJetObject):
 
     @property
     def nozzle(self):
-        nozzle = Cylinder(h=self.body_thickness + 0.1, r1=self.nozzle_radius, r2=self.nozzle_radius * 1.6, fn=200)
+        nozzle = Cylinder(h=self.body_thickness + 0.1, r1=self.nozzle_radius, r2=self.nozzle_radius * 1.2, fn=200)
         nozzle = self.frontcap_transform(nozzle)
         nozzle = Translate(z=-.05)(nozzle)
         return nozzle
 
     @property
     def frontcap(self):
-        frontcap = Cylinder(h=self.body_thickness, r=self.body_radius, fn=200)
+        frontcap = Cylinder(h=self.body_thickness, r=self.frontcap_radius, fn=200)
         frontcap = self.frontcap_transform(frontcap)
         frontcap = Difference()( frontcap, self.nozzle )
         return frontcap
@@ -247,7 +264,14 @@ class LaminarJetBase(LaminarJetObject):
     def render_scad(self, *args, **kw):
         body = Difference()(self.body, self.inlet_outer)
         inlet = Difference()(Union()(self.inlet, self.washer_block), self.inner_body)
-        jet = Union()( body, self.endcap, inlet, self.inlet_threads, self.body_out_threads )
+
+        bevel = Pipe(iR1=self.body_radius, iR2=self.body_inner_radius, oR1=self.body_radius + 3, oR2=self.body_radius, h=2.1, ifn=100, ofn=100)
+        bevel = Translate(z=self.body_length + 3)(bevel)
+        threads = self.body_out_threads
+        body = Union()(body, threads)
+        body = Difference()(body, bevel)
+        jet = Union()( body, self.endcap, inlet, self.inlet_threads )
+
         jet = Include(filename="ISOThread.scad")( jet )
         return jet.render_scad()
 
@@ -263,7 +287,7 @@ class LaminarJetStem(LaminarJetObject):
     stem_thread_length = stem_length - oring_width
     stem_thread_radius = stem_radius + 0.9
     stem_thread_pitch = 2.2
-    stem_nut_length = stem_length + 1.5
+    stem_nut_length = stem_length + oring_width * 0.75
     stem_nut_inner_radius = stem_thread_radius + 0.2
     stem_nut_radius = stem_nut_inner_radius + 3.5
     stem_nut_block_length = 2
@@ -330,13 +354,86 @@ class LaminarJetStem(LaminarJetObject):
         stem = Include(filename="ISOThread.scad")( stem )
         return stem.render_scad()
 
+class LaminarJetScreen(LaminarJetObject):
+    body_thickness = 2
+    body_length = 6
+    rod_inner_radius = LaminarJetStem.rod_radius
+    rod_radius = rod_inner_radius + body_thickness
+    body_radius_top = inch2mm(3.068) / 2.0 - 0.15
+    body_radius_bottom = inch2mm(3.068) / 2.0 - 0.5
+    body_inner_radius_top = body_radius_top - body_thickness
+    body_inner_radius_bottom = body_radius_bottom - body_thickness
+
+    @property
+    def body(self):
+        body1 = Pipe(h=self.body_length, 
+                ir2=self.body_inner_radius_top, 
+                ir1=self.body_inner_radius_bottom, 
+                or2=self.body_radius_top, 
+                or1=self.body_radius_bottom, 
+                ifn=200, ofn=200)
+        body2 = Pipe(h=self.body_length, oR=self.rod_radius, iR=self.rod_inner_radius, ofn=200, ifn=200)
+        body = Union()(body1, body2)
+        return body
+    
+    @property
+    def struts(self):
+        length = self.body_inner_radius - self.rod_radius + self.body_thickness
+        strut = Cube(x=length, y=self.body_thickness, z=self.body_length)
+        strut = Translate(x=self.rod_radius - self.body_thickness / 2.0, y=self.body_thickness / -2.0)(strut)
+        struts = [Rotate(z=idx * 45)(strut) for idx in range(8)]
+        struts = Union()(*struts)
+        return struts
+
+    def render_scad(self, *args, **kw):
+        screen = Union()(self.body, self.struts)
+        return screen.render_scad()
+
+class LaminarJetLED(LaminarJetObject):
+    body_length = 10
+    body_thread_length = 10
+    body_inner_radius = LaminarJetObject.body_radius - 2
+    center_shaft_radius = 9.55 / 2.0
+    tube_length = 10
+    body_thickness = 2
+    rod_inner_radius = LaminarJetStem.rod_radius
+    rod_radius = rod_inner_radius + body_thickness
+    led_radius = 15
+    screw_radius = 2
+
+    @property
+    def body(self):
+        body = Cylinder(h=self.body_thickness, r=self.led_radius, fn=6)
+        tube = Pipe(h=self.tube_length, oR=self.rod_radius, iR=self.rod_inner_radius, ofn=200, ifn=200)
+        body = Union()(body, tube)
+        stem = LaminarJetStem()
+        body = Difference()(body, stem.stem_inner, self.screw_holes)
+        return body
+    
+    @property
+    def screw_holes(self):
+        screw_hole = Cylinder(r=self.screw_radius, h=self.body_thickness, fn=20)
+        screw_hole = Translate(x=10)(screw_hole)
+        holes = [Rotate(z=idx * (360 / 6.0))(screw_hole) for idx in range(6)]
+        holes = Union()(*holes)
+        return holes
+    
+    def render_scad(self, *args, **kw):
+        led = Union()(self.body)
+        return led.render_scad()
+
+
 base = LaminarJetBase()
 base.render("laminar_jet_base.scad")
 middle = LaminarJetMiddle()
 middle.render("laminar_jet_middle.scad")
 nozzle = LaminarJetNozzle()
 nozzle.render("laminar_jet_nozzle.scad")
+screen = LaminarJetScreen()
+screen.render("laminar_jet_screen.scad")
 stem = LaminarJetStem()
 stem.render("laminar_jet_stem.scad")
 stem.test_stem.render("laminar_test_stem.scad")
 stem.test_stem_nut.render("laminar_stem_nut.scad")
+led = LaminarJetLED()
+led.render("laminar_led.scad")
