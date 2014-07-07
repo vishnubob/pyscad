@@ -83,7 +83,7 @@ class LaminarJetObject(SCAD_Object):
 
 class LaminarJetNozzle(LaminarJetObject):
     body_thickness = LaminarJetObject.body_thickness
-    body_length = 10
+    body_length = 20
     body_radius_top = inch2mm(3.068) / 2.0 - 0.15
     body_radius_bottom = inch2mm(3.068) / 2.0 - 0.5
     body_inner_radius_top = body_radius_top - body_thickness
