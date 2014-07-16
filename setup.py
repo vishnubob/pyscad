@@ -19,6 +19,7 @@ sctk = {
         "scad.utils", 
         "scad.vector", 
         "scad.threads", 
+        "scad.text", 
     ],
     "version": "0.1",
 }

@@ -77,15 +77,19 @@ class Polygon(Vector3D_SCAD_Primitive):
     SCAD_Name = "polygon"
     Defaults = {
         "points": {"type": ListVector2D},
-        "paths": {"type": ListVector2D},
+        "paths": {"type": list},
         "convexity": {"type": int, "default": None},
     }
     def get_scad_args(self):
         pts = [list(i) for i in self.points]
-        paths = [list(i) for i in self.paths]
         args = [("points", pts)]
-        if paths:
-            args.append(paths)
+        if self.paths:
+            # XXX: it would be nice to handle this on a more generic layer
+            if type(self.paths[0]) in (list, tuple):
+                paths = "[%s]" % str.join(', ', [("[%s]" % path) for path in [str.join(',', map(str, path)) for path in self.paths]])
+            else:
+                paths = [list(i) for i in self.paths]
+            args.append(("paths", paths))
         if self.convexity != None:
             args.append(("convexity", self.convexity))
         return args
