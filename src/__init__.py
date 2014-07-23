@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger("scad")
+
 from primitives import *
 from core import *
 from utils import *
@@ -7,7 +10,6 @@ from geometry import *
 from threads import *
 from text import *
 
-import logging
 
 def configure_logger(name=None, debug=False):
     global logger

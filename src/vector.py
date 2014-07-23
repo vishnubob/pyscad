@@ -1,7 +1,7 @@
 import math
 import operator
 import itertools
-from base import BaseObject, BaseObjectMetaclass
+from base import BaseObject, BaseObjectMetaclass, SCAD_BaseObjectMetaclass
 
 __all__ = [
     "Vector2D",
@@ -11,13 +11,14 @@ __all__ = [
     "BaseVector",
 ]
 
-class BaseVectorMetaClass(BaseObjectMetaclass):
+class BaseVectorMetaClass(SCAD_BaseObjectMetaclass):
     @classmethod
     def new_hook(cls, name, bases, ns):
         axes = ns.get("Axes")
         defaults = ns.get("Defaults", {})
-        defaults = {axis: {"type": float} for axis in axes if axis not in defaults}
+        defaults.update({axis: {"type": float} for axis in axes if axis not in defaults})
         ns["Defaults"] = defaults
+        return SCAD_BaseObjectMetaclass.new_hook(name, bases, ns)
 
 class BaseVector(BaseObject):
     __metaclass__ = BaseVectorMetaClass

@@ -15,6 +15,9 @@ class Color(SCAD_Primitive):
     }
     Aliases = {
         "colorname": "color.colorname",
+        "red": "color.red",
+        "green": "color.green",
+        "blue": "color.blue",
     }
 
     def __init__(self, args=(), **kw):
@@ -175,9 +178,14 @@ class Cube(SCAD_Primitive):
 
 class Cylinder(SCAD_Primitive):
     SCAD_Name = "cylinder"
+    Aliases = {
+        "radius_1": "radius",
+        "diameter_1": "diameter",
+        "r": "radius",
+    }
     Defaults = {
-        "radius_1": {"type": float, "default": 1.0},
-        "radius_2": {"type": float, "default": None},
+        "radius": {"type": float, "default": 1.0},
+        "radius_2": {"type": float, "default": 0.0},
         "center": {"type": bool, "default": False},
         "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
         "height": {"type": float, "default": 1.0},
@@ -195,11 +203,11 @@ class Cylinder(SCAD_Primitive):
         scad += self.resolution.get_scad_args()
         return scad
 
-    def get_diamater_1(self):
-        return self.radius_1 * 2
-    def set_diamater_1(self, dia):
-        self.radius_1 = dia / 2.0
-    diameter_1 = property(get_diamater_1, set_diamater_1)
+    def get_diamater(self):
+        return self.radius * 2
+    def set_diamater(self, dia):
+        self.radius = dia / 2.0
+    diameter = property(get_diamater, set_diamater)
 
     def get_diamater_2(self):
         return self.radius_2 * 2

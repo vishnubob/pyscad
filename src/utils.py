@@ -70,6 +70,8 @@ def find(name, path):
             return os.path.join(root, name)
 
 def which(program):
+    if not program:
+        return
     def is_qualified_exe(fpath):
         return len(os.path.split(fpath)[0]) and os.path.isfile(fpath) and os.access(fpath, os.X_OK)
     if is_qualified_exe(program):
@@ -85,4 +87,3 @@ def which(program):
         best_guess = os.path.join(path, program)
         if is_qualified_exe(best_guess):
             return best_guess
-    return None

@@ -142,13 +142,15 @@ class Glyph(SCAD_Object):
         vec = self.face.get_kerning(self.ch, other.ch)
         return {'x': from_fixed_point(vec.x, 6), 'y': from_fixed_point(vec.y, 6)}
     
+    @property
     def advance(self):
-        return {'x': from_fixed_point(ch.glyph.advance.x, 6), 'y': from_fixed_point(self.glyph.advance.y, 6)}
+        return {'x': from_fixed_point(self.glyph.advance.x, 6), 'y': from_fixed_point(self.glyph.advance.y, 6)}
 
 class Text(Glyph):
     Defaults = {
         "text": {"type": str},
         "glyph": {"type": Glyph},
+        "kernflag": {"type": bool, "default": True}
     }
 
     def render_scad(self, *args, **kw):
@@ -157,12 +159,12 @@ class Text(Glyph):
         last_ch = None
         for ch in self.text:
             ch = self.glyph.get_char(ch)
-            if last_ch:
+            if last_ch and self.kernflag:
                 xoffset += last_ch.kern(ch)["x"]
             last_ch = ch
             _ch = Translate(x=xoffset)(ch)
             res.append(_ch)
-            xoffset += ch.glyph.advance.x >> 6
+            xoffset += ch.advance["x"] - 10
         ret = Union()(res)
         return ret.render_scad(*args, **kw)
 

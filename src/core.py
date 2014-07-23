@@ -5,7 +5,7 @@ import tempfile
 import logging
 import inspect
 from utils import which
-from base import BaseObject, BaseObjectMetaclass
+from base import BaseObject, BaseObjectMetaclass, SCAD_BaseObjectMetaclass
 from vector import *
 
 logger = logging.getLogger(__name__)
@@ -19,53 +19,38 @@ __all__ = [
     "OpenSCAD",
 ]
 
-class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
-    GlobalAliases = {
-        'red': ('r', 'R'),
-        'green': ('g', 'G'),
-        'blue': ('b', 'B'),
-        'alpha': ('a', 'A'),
-        'height': ('h', 'H'),
-        'radius': ('r', 'R'),
-        'radius_1': ('r', 'R', 'r1', 'R1'),
-        'radius_2': ('r2', 'R2'),
-        'diameter': ('d', 'D', 'dia'),
-        'diameter_1': ('d', 'D', 'dia', 'd1', 'D1', 'dia1'),
-        'diameter_2': ('d2', 'D2', 'dia2'),
-        'edge': ('e',),
-        'x': ('x', 'X', 'width'),
-        'y': ('y', 'Y', 'depth'),
-        'z': ('z', 'Z', 'height'),
-    }
-
-    @classmethod
-    def new_hook(cls, name, bases, ns):
-        # for all the actual keys defined in our namespace
-        for key in ns["Defaults"].keys() + ns.keys():
-            for global_alias in cls.GlobalAliases.get(key, ()):
-                if global_alias not in ns["Aliases"]:
-                    ns["Aliases"][global_alias] = key
-        # sweep up any pure aliases
-        changed = 1
-        while changed:
-            changed = 0
-            for (alias, key) in ns["Aliases"].items():
-                for global_alias in cls.GlobalAliases.get(alias, ()):
-                    if global_alias not in ns["Aliases"]:
-                        ns["Aliases"][global_alias] = key
-                        changed = 1
-
 class SCAD_Object(BaseObject):
     __metaclass__ = SCAD_BaseObjectMetaclass
 
     def render_scad(self, *args, **kw):
         pass
+
     def render(self, *args, **kw):
         engine = OpenSCAD()
         return engine.render(self, *args, **kw)
 
 class SCAD_Primitive(SCAD_Object):
     SCAD_Name = '__SCAD_Primitive__'
+
+    Defaults = {
+        "disable": {"type": bool, "default": False},
+        "debug": {"type": bool, "default": False},
+        "root": {"type": bool, "default": False},
+        "background": {"type": bool, "default": False},
+    }
+
+    @property
+    def scad_modifier(self):
+        ret = ''
+        if self.background:
+            ret = '%'
+        elif self.debug:
+            ret = '#'
+        elif self.root:
+            ret = '!'
+        elif self.disable:
+            ret = '*'
+        return ret
 
     def translate_arg_to_scad(self, arg):
         if isinstance(arg, tuple) and len(arg) == 2:
@@ -82,18 +67,20 @@ class SCAD_Primitive(SCAD_Object):
         args = self.get_scad_args()
         ret = str.join(', ', [self.translate_arg_to_scad(arg) for arg in args])
         return ret
-
+    
     def render_scad(self, margin=4, level=0):
         args = self.render_args()
         macros = {
             "name": self.SCAD_Name,
             "margin": (' ' * margin) * level,
             "args": args,
+            "modifier": self.scad_modifier,
         }
-        scad = "%(margin)s%(name)s(%(args)s);"
         if self.children:
             macros["body"] = str.join('\n', [child.render_scad(margin, level + 1) for child in self.children])
-            scad = "%(margin)s%(name)s(%(args)s) {\n%(body)s\n}\n"
+            scad = "%(margin)s%(modifier)s %(name)s(%(args)s) {\n%(body)s\n%(margin)s}\n"
+        else:
+            scad = "%(margin)s%(modifier)s %(name)s(%(args)s);"
         return scad % macros
 
     def get_scad_args(self):

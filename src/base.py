@@ -1,6 +1,8 @@
+import sys
 import logging
 import inspect
 import types
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -12,21 +14,11 @@ class BaseObjectMetaclass(type):
         ns["Defaults"].update(cls.mro_walk("Defaults", bases))
         ns["Aliases"] = ns.get("Aliases", {})
         ns["Aliases"].update(cls.mro_walk("Aliases", bases))
-        ns["AliasMap"] = ns.get("AliasMap", {})
-        ns["AliasMap"].update(cls.mro_walk("AliasMap", bases))
         ns["Resserved"] = ns.get("Reserved", {})
         ns["Resserved"].update(cls.mro_walk("Reserved", bases))
-        # sync Aliases and AliasMap
-        for key in ns["AliasMap"]:
-            for alias in ns["AliasMap"][key]:
-                if alias not in ns["Aliases"]:
-                    ns["Aliases"][alias] = key
-        # hook time
-        cls.refresh_alias_map(ns)
-        cls.alias_embedded_objects(name, bases, ns)
-        cls.refresh_alias_map(ns)
+        ns["InnerObjects"] = cls.get_inner_objets(name, bases, ns)
+        # call any hooks
         cls.new_hook(name, bases, ns)
-        cls.refresh_alias_map(ns)
         # add automatic properties
         for key in ns["Defaults"]:
             if key in ns:
@@ -35,41 +27,13 @@ class BaseObjectMetaclass(type):
         return type.__new__(cls, name, bases, ns)
 
     @classmethod
-    def refresh_alias_map(cls, ns):
-        ns["AliasMap"].clear()
-        for (alias, key) in ns["Aliases"].items():
-            ns["AliasMap"][key] = ns["AliasMap"].get(key, ()) + (alias,)
-
-    @classmethod
-    def alias_embedded_objects(cls, name, bases, ns):
-        seenit = set()
+    def get_inner_objets(cls, name, bases, ns):
+        res = []
         for key in ns["Defaults"].keys() + ns.keys():
-            if key in seenit:
-                continue
-            seenit.add(key)
-            # check to see if the target type of this key also has aliases
             cobj = ns["Defaults"].get(key, {"type": None})["type"]
             if inspect.isclass(cobj) and issubclass(cobj, BaseObject):
-                # check to see if our namespace has aliases to the
-                # inner object
-                root_aliases = ns["AliasMap"].get(key, ('',))
-                # for all the known aliases of the inner object
-                for root_alias in root_aliases:
-                    for cobj_key in cobj.Defaults:
-                        new_alias = root_alias + cobj_key
-                        new_alias_key = "%s.%s" % (key, cobj_key)
-                        if new_alias not in ns["Aliases"]:
-                            ns["Aliases"][new_alias] = new_alias_key
-                    # for all of the known aliased items within inner object
-                    for cobj_key in cobj.AliasMap:
-                        # for all of the known aliases of aliased items within inner object
-                        for cobj_alias in cobj.AliasMap[cobj_key]:
-                            # assign new alias that combines the inner object alias
-                            # with the alias for the item within the inner object
-                            new_alias = root_alias + cobj_alias
-                            new_alias_key = "%s.%s" % (key, cobj_key)
-                            if new_alias not in ns["Aliases"]:
-                                ns["Aliases"][new_alias] = new_alias_key
+                res.append((key, cobj))
+        return res
 
     @classmethod
     def mro_walk(cls, name, bases):
@@ -97,7 +61,43 @@ class BaseObjectMetaclass(type):
 
     @classmethod
     def new_hook(cls, name, bases, ns):
-        return (cls, name, bases, ns)
+        return
+
+class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
+    GlobalAliases = {
+        'red': ('r', 'R'),
+        'green': ('g', 'G'),
+        'blue': ('b', 'B'),
+        'alpha': ('a', 'A'),
+        'height': ('h', 'H'),
+        'radius': ('r', 'R'),
+        'radius_1': ('r', 'R', 'r1', 'R1'),
+        'radius_2': ('r2', 'R2'),
+        'diameter': ('d', 'D', 'dia'),
+        'diameter_1': ('d', 'D', 'dia', 'd1', 'D1', 'dia1'),
+        'diameter_2': ('d2', 'D2', 'dia2'),
+        'edge': ('e',),
+        'x': ('x', 'X', 'width'),
+        'y': ('y', 'Y', 'depth'),
+        'z': ('z', 'Z', 'height'),
+    }
+
+    @classmethod
+    def _new_hook(cls, name, bases, ns):
+        # for all the actual keys defined in our namespace
+        for key in ns["Defaults"].keys() + ns.keys():
+            for global_alias in cls.GlobalAliases.get(key, ()):
+                if global_alias not in ns["Aliases"]:
+                    ns["Aliases"][global_alias] = key
+        # sweep up any pure aliases
+        changed = 1
+        while changed:
+            changed = 0
+            for (alias, key) in ns["Aliases"].items():
+                for global_alias in cls.GlobalAliases.get(alias, ()):
+                    if global_alias not in ns["Aliases"]:
+                        ns["Aliases"][global_alias] = key
+                        changed = 1
 
 class BaseObject(object):
     __metaclass__ = BaseObjectMetaclass
@@ -187,13 +187,66 @@ class BaseObject(object):
             obj = getattr(obj, attr)
         return obj
     
+    def lookup_attribute(self, key):
+        print "lookup", key
+        if key[0] == '_':
+            return key
+        def ns_lookup_attr_verbatim(key, ns):
+            if key in ns:
+                return key
+        def ns_lookup_attr(key, ns):
+            idx = -1
+            rstr = ''
+            last_resort = True
+            while ns and (idx + 1) < len(key):
+                _idx = idx + 1
+                _rstr = rstr + key[_idx]
+                rgx = re.compile(_rstr, re.I)
+                _ns = set([name for name in ns if rgx.match(name)])
+                if len(_ns) == 0 and last_resort:
+                    last_resort = False
+                    _rstr = rstr + '.*' + _rstr[-1]
+                    rgx = re.compile(_rstr, re.I)
+                    _ns = set([name for name in ns if rgx.match(name)])
+                if len(_ns) == 0:
+                    break
+                ns = _ns
+                rstr = _rstr
+                idx = _idx
+            if len(ns) == 1:
+                subkey = key[idx+1:]
+                key = ns.pop()
+                key = self.Aliases.get(key, key)
+                if subkey:
+                    key = "%s.%s" % (key, subkey)
+            else:
+                key = None
+            return key
+        _key = self.Aliases.get(key, None)
+        nslist = [ 
+                self.Aliases.keys(), 
+                self.Defaults.keys(), 
+                dir(self), 
+                ]
+        methods = [ns_lookup_attr_verbatim, ns_lookup_attr]
+        ops = [(method, ns) for method in methods for ns in nslist]
+        for (method, ns) in ops:
+            _key = method(key, ns)
+            if _key:
+                key = _key
+                break
+        if key in self.Aliases:
+            key = self.Aliases[key]
+        print "-> lookup", key
+        return key
+    
     def __getitem__(self, key):
         if '.' in key:
             return self.__getattr__(key, val)
         return self.__namespace__[key]
 
     def __getattr__(self, key):
-        key = self.Aliases.get(key, key)
+        key = self.lookup_attribute(key)
         if '.' in key:
             return self.resolve(key)
         return super(BaseObject, self).__getattribute__(key)
@@ -204,7 +257,7 @@ class BaseObject(object):
         self.__namespace__[key] = val
 
     def __setattr__(self, key, val):
-        key = self.Aliases.get(key, key)
+        key = self.lookup_attribute(key)
         if '.' in key:
             parts = key.split('.')
             obj = self.resolve(parts[:-1])
