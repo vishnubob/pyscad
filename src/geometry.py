@@ -10,20 +10,25 @@ class Pipe(SCAD_Object):
         "inner": {"type": Cylinder},
         "outer": {"type": Cylinder},
         "_height": {"type": int},
-        "padding": {"type": float, "default": 1.1},
+        "padding": {"type": float, "default": 0.0},
     }
     Aliases = {
         'i': 'inner',
         'o': 'outer'
     }
     def render_scad(self, *args, **kw):
-        pad_offset = ((self.height * self.padding) - self.height) / 2.0
-        return Difference()(self.outer, Translate(z=-pad_offset)( self.inner )).render_scad()
+        if self.padding:
+            pad_offset = ((self.height * self.padding) - self.height) / 2.0
+            return Difference()(self.outer, Translate(z=-pad_offset)( self.inner )).render_scad()
+        return Difference()(self.outer, self.inner).render_scad()
     def get_height(self):
         return self.inner.height
     def set_height(self, height):
         # We make the inner slightly longer
-        self.inner.height = height * self.padding
+        if self.padding:
+            self.inner.height = height * self.padding
+        else:
+            self.inner.height = height
         self.outer.height = height
     height = property(get_height, set_height)
 

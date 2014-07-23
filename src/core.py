@@ -33,10 +33,10 @@ class SCAD_Primitive(SCAD_Object):
     SCAD_Name = '__SCAD_Primitive__'
 
     Defaults = {
-        "disable": {"type": bool, "default": False},
-        "debug": {"type": bool, "default": False},
-        "root": {"type": bool, "default": False},
-        "background": {"type": bool, "default": False},
+        "disable": {"type": bool, "default": False, "propagate": True},
+        "debug": {"type": bool, "default": False, "propagate": True},
+        "root": {"type": bool, "default": False, "propagate": True},
+        "background": {"type": bool, "default": False, "propagate": True},
     }
 
     @property

@@ -47,6 +47,7 @@ class BaseObjectMetaclass(type):
             return self[attr]
         def fset(self, value, attr=key):
             cast = self.Defaults[attr].get("cast", True)
+            propagate = self.Defaults[attr].get("propagate", False)
             default_type = self.Defaults[attr]["type"]
             if cast and type(value) != default_type:
                 # cast variable to proper type
@@ -57,11 +58,19 @@ class BaseObjectMetaclass(type):
                     msg = "Attribute '%s' must be castable to a %s, and can not be a %s" % (attr, default_type, type(value))
                     raise TypeError, msg
             self[attr] = value
+            if propagate:
+                for (oname, cobj) in self.InnerObjects:
+                    try:
+                        setattr(getattr(self, oname), attr, value)
+                    except KeyError:
+                        pass
+                    except AttributeError:
+                        pass
         ns[key] = property(fget, fset)
 
     @classmethod
     def new_hook(cls, name, bases, ns):
-        return
+        pass
 
 class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
     GlobalAliases = {
@@ -77,28 +86,36 @@ class SCAD_BaseObjectMetaclass(BaseObjectMetaclass):
         'diameter_1': ('d', 'D', 'dia', 'd1', 'D1', 'dia1'),
         'diameter_2': ('d2', 'D2', 'dia2'),
         'edge': ('e',),
-        'x': ('x', 'X', 'width'),
-        'y': ('y', 'Y', 'depth'),
-        'z': ('z', 'Z', 'height'),
+        'x': ('X', 'width'),
+        'y': ('Y', 'depth'),
+        'z': ('Z', 'height'),
+        'inner': ('i*', 'I*'),
+        'outer': ('o*', 'O*'),
+    }
+
+    ResolutionGlobals = {
+        'fn': 'resolution.fn',
+        'fa': 'resolution.fa',
+        'fs': 'resolution.fs',
     }
 
     @classmethod
-    def _new_hook(cls, name, bases, ns):
-        # for all the actual keys defined in our namespace
-        for key in ns["Defaults"].keys() + ns.keys():
-            for global_alias in cls.GlobalAliases.get(key, ()):
-                if global_alias not in ns["Aliases"]:
-                    ns["Aliases"][global_alias] = key
-        # sweep up any pure aliases
-        changed = 1
-        while changed:
-            changed = 0
-            for (alias, key) in ns["Aliases"].items():
-                for global_alias in cls.GlobalAliases.get(alias, ()):
-                    if global_alias not in ns["Aliases"]:
-                        ns["Aliases"][global_alias] = key
-                        changed = 1
+    def new_hook(cls, name, bases, ns):
+        aliases = ns.get("Aliases", {})
+        defaults = ns.get("Defaults", {})
+        new_aliases = {}
+        new_aliases.update(cls.get_maps(aliases, cls.GlobalAliases))
+        new_aliases.update(cls.get_maps(defaults, cls.GlobalAliases))
+        new_aliases.update(cls.get_maps(ns, cls.GlobalAliases))
+        if "resolution" in defaults:
+            new_aliases.update(cls.ResolutionGlobals)
+        new_aliases.update(aliases)
+        ns["Aliases"] = new_aliases
 
+    @classmethod
+    def get_maps(cls, ns, aliases):
+        return {alias: key for key in ns for alias in aliases.get(key, ()) if key != alias}
+    
 class BaseObject(object):
     __metaclass__ = BaseObjectMetaclass
     Defaults = {}
@@ -186,84 +203,71 @@ class BaseObject(object):
         for attr in key:
             obj = getattr(obj, attr)
         return obj
-    
-    def lookup_attribute(self, key):
-        print "lookup", key
-        if key[0] == '_':
-            return key
-        def ns_lookup_attr_verbatim(key, ns):
-            if key in ns:
-                return key
-        def ns_lookup_attr(key, ns):
-            idx = -1
-            rstr = ''
-            last_resort = True
-            while ns and (idx + 1) < len(key):
-                _idx = idx + 1
-                _rstr = rstr + key[_idx]
-                rgx = re.compile(_rstr, re.I)
-                _ns = set([name for name in ns if rgx.match(name)])
-                if len(_ns) == 0 and last_resort:
-                    last_resort = False
-                    _rstr = rstr + '.*' + _rstr[-1]
-                    rgx = re.compile(_rstr, re.I)
-                    _ns = set([name for name in ns if rgx.match(name)])
-                if len(_ns) == 0:
-                    break
-                ns = _ns
-                rstr = _rstr
-                idx = _idx
-            if len(ns) == 1:
-                subkey = key[idx+1:]
-                key = ns.pop()
-                key = self.Aliases.get(key, key)
-                if subkey:
-                    key = "%s.%s" % (key, subkey)
-            else:
-                key = None
-            return key
-        _key = self.Aliases.get(key, None)
-        nslist = [ 
-                self.Aliases.keys(), 
-                self.Defaults.keys(), 
-                dir(self), 
-                ]
-        methods = [ns_lookup_attr_verbatim, ns_lookup_attr]
-        ops = [(method, ns) for method in methods for ns in nslist]
-        for (method, ns) in ops:
-            _key = method(key, ns)
-            if _key:
-                key = _key
-                break
-        if key in self.Aliases:
-            key = self.Aliases[key]
-        print "-> lookup", key
-        return key
-    
+
+    # set item and get item do not translate keys,
+    # nor will they call setters / getters
     def __getitem__(self, key):
         if '.' in key:
             return self.__getattr__(key, val)
         return self.__namespace__[key]
-
-    def __getattr__(self, key):
-        key = self.lookup_attribute(key)
-        if '.' in key:
-            return self.resolve(key)
-        return super(BaseObject, self).__getattribute__(key)
 
     def __setitem__(self, key, val):
         if '.' in key:
             self.__setattr__(key, val)
         self.__namespace__[key] = val
 
-    def __setattr__(self, key, val):
-        key = self.lookup_attribute(key)
-        if '.' in key:
-            parts = key.split('.')
-            obj = self.resolve(parts[:-1])
-            setattr(obj, parts[-1], val)
+    @property
+    def magic_aliases(self):
+        for alias in self.Aliases:
+            if alias.endswith('*'):
+                regex = "(%s)(.*)" % alias[:-1]
+                yield re.compile(regex)
+
+    def resolve_magic_alias(self, key):
+        m = None
+        for regex in self.magic_aliases:
+            m = regex.match(key)
+            if m:
+                break
+        if m:
+            (key, subkey) = m.groups()
+            if hasattr(getattr(self, key), subkey):
+                return "%s.%s" % (key, subkey)
+        return key
+
+    def resolve_alias(self, key):
+        if key in self.Defaults or key in self.__dict__:
+            return key
+        if key not in self.Aliases:
+            key = self.resolve_magic_alias(key)
+            return key
+        key = self.Aliases[key]
+        if type(key) in (str, unicode):
+            return self.resolve_alias(key)
+        return [self.resolve_alias(subkey) for subkey in key]
+
+    def __getattr__(self, key):
+        key = self.resolve_alias(key)
+        if type(key) in (str, unicode):
+            if '.' in key:
+                return self.resolve(key)
+            return super(BaseObject, self).__getattribute__(key)
         else:
-            super(BaseObject, self).__setattr__(key, val)
+            # XXX: only return the first key
+            return self.__getattr__(key[0])
+
+    def __setattr__(self, key, val):
+        key = self.resolve_alias(key)
+        if type(key) in (str, unicode):
+            if '.' in key:
+                parts = key.split('.')
+                obj = self.resolve(parts[:-1])
+                setattr(obj, parts[-1], val)
+            else:
+                super(BaseObject, self).__setattr__(key, val)
+        else:
+            for subkey in key:
+                self.__setattr__(subkey, val)
 
     # children
     def __call__(self, *args):

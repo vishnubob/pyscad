@@ -8,6 +8,16 @@ def check_vector(vector, **answers):
     for (key, value) in answers.items():
         assert getattr(vector, key) == value, "%s != %s" % (getattr(vector, key), value)
 
+def code_compare(result, expected):
+    def wash_str(_str):
+        for ch in _str:
+            if ch in [' ', '\t', '\n']:
+                continue
+            yield ch
+    expected = str.join('', wash_str(expected))
+    result = str.join('', wash_str(result))
+    assert expected == result, "Generated code does not match expected result: \nExpected: %s\n  Result: %s\n" % (expected, result)
+
 def open_scad_exe():
     scad = OpenSCAD()
     return scad.command
@@ -29,17 +39,17 @@ class TestRadialResolution(unittest.TestCase):
     def test_cylinder_radial_resolution_scad(self):
         c = Cylinder(h=10, r=20, fn=10, fa=1)
         answer = "cylinder(r=20.0, h=10.0, center=false, $fn=10.0);"
-        self.assertEquals(c.render_scad().strip(), answer)
+        code_compare(c.render_scad(), answer)
         c.fn = 0
         answer = "cylinder(r=20.0, h=10.0, center=false, $fa=1.0);"
-        self.assertEquals(c.render_scad().strip(), answer)
+        code_compare(c.render_scad(), answer)
         c.fs = 3
         answer = "cylinder(r=20.0, h=10.0, center=false, $fa=1.0, $fs=3.0);"
-        self.assertEquals(c.render_scad().strip(), answer)
+        code_compare(c.render_scad(), answer)
         c.fs = 2
         c.fa = 2
         answer = "cylinder(r=20.0, h=10.0, center=false);"
-        self.assertEquals(c.render_scad().strip(), answer)
+        code_compare(c.render_scad(), answer)
 
 class TestCylinder(unittest.TestCase):
     def test_sphere_creation(self):
@@ -51,7 +61,7 @@ class TestCylinder(unittest.TestCase):
     def test_sphere_scad(self):
         c = Cylinder(h=10, r=20)
         answer = "cylinder(r=20.0, h=10.0, center=false);"
-        self.assertEquals(c.render_scad().strip(), answer)
+        code_compare(c.render_scad(), answer)
 
 class TestPolyhedron(unittest.TestCase):
     def test_polyhedron_creation(self):
@@ -62,7 +72,7 @@ class TestPolyhedron(unittest.TestCase):
         p.points = [[1,1,1], [2,2,2], [3,3,3]]
         p.faces = [[0, 1, 2]]
         answer = "polyhedron(points=[[1.0, 1.0, 1.0], [2.0, 2.0, 2.0], [3.0, 3.0, 3.0]], faces=[[0.0, 1.0, 2.0]]);"
-        self.assertEquals(p.render_scad().strip(), answer)
+        code_compare(p.render_scad(), answer)
 
 class TestCube(unittest.TestCase):
     def test_cube_creation(self):
@@ -82,7 +92,7 @@ class TestCube(unittest.TestCase):
         answer = "cube([1.0, 2.0, 3.0], center=false);"
         c = Cube([1,2,3])
         scad = c.render_scad()
-        self.assertEquals(scad.strip(), answer)
+        code_compare(scad, answer)
 
 class TestVector3D(unittest.TestCase):
     def test_vector_creation(self):
@@ -132,7 +142,7 @@ class TestUnion(unittest.TestCase):
     def test_union_scad(self):
         u = Union()(Cube(), Cube(2))
         answer = 'union() {\n    cube([1.0, 1.0, 1.0], center=false);\n    cube([2.0, 2.0, 2.0], center=false);\n}'
-        self.assertEquals(u.render_scad().strip(), answer)
+        code_compare(u.render_scad(), answer)
 
 class TestColor(unittest.TestCase):
     def test_color_creation(self):
@@ -172,7 +182,7 @@ class TestGeometry(unittest.TestCase):
         self.assertEquals(pie.h, 4.0)
         scad = pie.render_scad()
         answer = ""
-        self.assertEquals(scad.strip(), answer)
+        code_compare(scad, answer)
 
     def test_arc(self):
         Arc()
@@ -181,7 +191,7 @@ class TestGeometry(unittest.TestCase):
         #arc.render()
         #scad = pie.render_scad()
         #answer = ""
-        #self.assertEquals(scad.strip(), answer)
+        #self.assertEquals(scad, answer)
 
     def test_tetrahedron(self):
         Tetrahedron()
@@ -189,14 +199,14 @@ class TestGeometry(unittest.TestCase):
         self.assertEquals(tet.h, 1.0)
         scad = tet.render_scad()
         answer = "polyhedron(points=[[-0.6123724356957945, -0.35355339059327373, -0.5], [0.6123724356957945, -0.35355339059327373, -0.5], [0.0, 0.7071067811865475, -0.5], [0.0, 0.0, 0.5]], faces=[[0.0, 1.0, 2.0], [1.0, 0.0, 3.0], [0.0, 2.0, 3.0], [2.0, 1.0, 3.0]]);"
-        self.assertEquals(scad.strip(), answer)
+        code_compare(scad, answer)
 
     def test_pipe(self):
         Pipe()
         p = Pipe()
         scad = p.render_scad()
-        answer = "difference() {\n    cylinder(r=1.0, h=1.0, center=false);\n    cylinder(r=1.0, h=1.0, center=false);\n}"
-        self.assertEquals(scad.strip(), answer)
+        answer = "difference(){cylinder(r=1.0,h=1.0,center=false);cylinder(r=1.0,h=1.0,center=false);}"
+        code_compare(scad, answer)
         p = Pipe(or1=8, or2=5, ir1=7, ir2=2, h=20.0)
         self.assertEquals(p.ir, 7.0)
         self.assertEquals(p.inner.r1, 7.0)
@@ -206,7 +216,7 @@ class TestGeometry(unittest.TestCase):
         self.assertEquals(p.height, 20.0)
         scad = p.render_scad()
         answer = 'difference() {\n    cylinder(r1=8.0, r2=5.0, h=20.0, center=false);\n    cylinder(r1=7.0, r2=2.0, h=20.0, center=false);\n}'
-        self.assertEquals(scad.strip(), answer)
+        code_compare(scad, answer)
 
     def _test_octohedron(self):
         Octohedron()
@@ -215,7 +225,7 @@ class TestGeometry(unittest.TestCase):
         scad = octo.render_scad()
         scad = octo.render()
         answer = ""
-        self.assertEquals(scad.strip(), answer)
+        code_compare(scad, answer)
 
 class TestOpenSCAD(unittest.TestCase):
     def setUp(self):
