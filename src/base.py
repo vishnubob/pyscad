@@ -236,6 +236,7 @@ class BaseObject(object):
         return key
 
     def resolve_alias(self, key):
+        #if key in self.Defaults or key in dir(self):
         if key in self.Defaults or key in self.__dict__:
             return key
         if key not in self.Aliases:

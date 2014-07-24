@@ -22,21 +22,12 @@ __all__ = [
 class SCAD_Object(BaseObject):
     __metaclass__ = SCAD_BaseObjectMetaclass
 
-    def render_scad(self, *args, **kw):
-        pass
-
-    def render(self, *args, **kw):
-        engine = OpenSCAD()
-        return engine.render(self, *args, **kw)
-
-class SCAD_Primitive(SCAD_Object):
-    SCAD_Name = '__SCAD_Primitive__'
-
     Defaults = {
         "disable": {"type": bool, "default": False, "propagate": True},
         "debug": {"type": bool, "default": False, "propagate": True},
         "root": {"type": bool, "default": False, "propagate": True},
         "background": {"type": bool, "default": False, "propagate": True},
+        "center": {"type": bool, "default": False, "propagate": True},
     }
 
     @property
@@ -51,6 +42,16 @@ class SCAD_Primitive(SCAD_Object):
         elif self.disable:
             ret = '*'
         return ret
+
+    def render_scad(self, *args, **kw):
+        pass
+
+    def render(self, *args, **kw):
+        engine = OpenSCAD()
+        return engine.render(self, *args, **kw)
+
+class SCAD_Primitive(SCAD_Object):
+    SCAD_Name = '__SCAD_Primitive__'
 
     def translate_arg_to_scad(self, arg):
         if isinstance(arg, tuple) and len(arg) == 2:

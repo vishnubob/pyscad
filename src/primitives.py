@@ -101,7 +101,6 @@ class LinearExtrude(SCAD_Primitive):
     SCAD_Name = "linear_extrude"
     Defaults = {
         "height": {"type": float},
-        "center": {"type": bool, "default": False},
         "convexity": {"type": int, "default": None},
         "twist": {"type": float},
         "slices": {"type": int, "default": 20},
@@ -156,7 +155,6 @@ class Cube(SCAD_Primitive):
     }
     Defaults = {
         "size": {"type": Vector3D, "default": lambda: Vector3D([1.0, 1.0, 1.0])},
-        "center": {"type": bool, "default": False},
     }
 
     def __init__(self, args=(), **kw):
@@ -186,8 +184,7 @@ class Cylinder(SCAD_Primitive):
     Defaults = {
         "radius": {"type": float, "default": 1.0},
         "radius_2": {"type": float, "default": 0.0},
-        "center": {"type": bool, "default": False},
-        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
         "height": {"type": float, "default": 1.0},
     }
 
@@ -224,8 +221,7 @@ class Sphere(SCAD_Primitive):
     }
     Defaults = {
         "radius": {"type": float, "default": 1.0},
-        "center": {"type": bool, "default": False},
-        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
     }
 
     def get_scad_args(self):

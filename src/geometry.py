@@ -9,36 +9,39 @@ class Pipe(SCAD_Object):
     Defaults = {
         "inner": {"type": Cylinder},
         "outer": {"type": Cylinder},
-        "_height": {"type": int},
-        "padding": {"type": float, "default": 0.0},
+        "_padding": {"type": float, "default": 1.0},
     }
     Aliases = {
         'i': 'inner',
         'o': 'outer'
     }
     def render_scad(self, *args, **kw):
-        if self.padding:
-            pad_offset = ((self.height * self.padding) - self.height) / 2.0
+        pad_offset = (self.inner.height - self.outer.height) / 2.0
+        if pad_offset and not self.center:
             return Difference()(self.outer, Translate(z=-pad_offset)( self.inner )).render_scad()
         return Difference()(self.outer, self.inner).render_scad()
     def get_height(self):
-        return self.inner.height
+        return self.outer.height
     def set_height(self, height):
         # We make the inner slightly longer
-        if self.padding:
-            self.inner.height = height * self.padding
-        else:
-            self.inner.height = height
+        self.inner.height = height * self.padding
         self.outer.height = height
     height = property(get_height, set_height)
+
+    def get_padding(self):
+        return self._padding
+    def set_padding(self, padding):
+        # We make the inner slightly longer
+        self._padding = padding
+        self.height = self.height
+    padding = property(get_padding, set_padding)
 
 class SemiCylinder(SCAD_Object):
     Defaults = {
         "angle": {"type": float, "default":180},
         "phase": {"type": float},
         "radius": {"type": float, "default": 1.0},
-        "center": {"type": bool, "default": False},
-        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution()},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
         "height": {"type": float, "default": 1.0},
     }
 
@@ -92,7 +95,6 @@ class Arc(SCAD_Object):
 class Octohedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
-        "center": {"type": bool, "default": False},
     }
     def get_edge(self):
         return self.height / (math.sqrt(3.0) / 2.0)
@@ -133,7 +135,6 @@ class Octohedron(SCAD_Object):
 class Tetrahedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},
-        "center": {"type": bool, "default": False},
     }
     def get_edge(self):
         return self.height / math.sqrt(2.0 / 3.0)
