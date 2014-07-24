@@ -291,4 +291,5 @@ class DrumPump(SCAD_Object):
 
 pump = DrumPump(center=True)
 pump.render("drum_pump.scad")
+pump.render("drum_pump.stl")
 pump.save_bom()
