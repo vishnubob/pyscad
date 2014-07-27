@@ -7,11 +7,24 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+class SCAD_Globals(SCAD_Primitive):
+    SCAD_Name = ""
+
+    Defaults = {
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
+    }
+
+    def render_scad(self, *args, **kw):
+        scad =  "$fn = %d;\n" % self.resolution.fn
+        scad += str.join('\n', [child.render_scad(*args, **kw) for child in self.children])
+        return scad
+
 class Color(SCAD_Primitive):
     SCAD_Name = "color"
 
     Defaults = {
         "color": {"type": VectorColor, "default": lambda: VectorColor()},
+        "alpha": {"type": float, "default": 1.0},
     }
     Aliases = {
         "colorname": "color.colorname",
@@ -27,6 +40,10 @@ class Color(SCAD_Primitive):
             else:
                 kw["color"] = args
         super(SCAD_Primitive, self).__init__(**kw)
+
+    def get_scad_args(self):
+        rgba = map(str, [[float(self.red) / 0xff, float(self.green) / 0xff, float(self.blue) / 0xff], self.alpha])
+        return rgba
     
 class Projection(SCAD_Primitive):
     SCAD_Name = "projection"
