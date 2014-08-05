@@ -51,6 +51,9 @@ class Projection(SCAD_Primitive):
         "cut": {"type": bool, "default": False}
     }
 
+    def get_scad_args(self):
+        return [("cut", self.cut)]
+
 class Union(SCAD_Primitive):
     SCAD_Name = "union"
 

@@ -36,6 +36,48 @@ class Pipe(SCAD_Object):
         self.height = self.height
     padding = property(get_padding, set_padding)
 
+class Chamfer(SCAD_Object):
+    Defaults = {
+        "chamfer": {"type": float, "default": 4},
+        "radius": {"type": float, "default": 4},
+        "center": {"type": bool, "default": False},
+        "invert": {"type": bool, "default": False},
+    }
+
+    def render_scad(self, *args, **kw):
+        if self.invert:
+            return Pipe(
+                        ir2=self.radius - self.chamfer, 
+                        or2=self.radius, 
+                        ir1=self.radius * 1.05, 
+                        or1=self.radius + self.chamfer, 
+                        h=self.chamfer, 
+                        center=self.center,
+                        padding=1.2,
+                    ).render_scad(*args, **kw)
+        else:
+            return Pipe(
+                        or2=self.radius + self.chamfer, 
+                        ir2=self.radius * 1.05, 
+                        or1=self.radius, 
+                        ir1=self.radius - self.chamfer, 
+                        h=self.chamfer, 
+                        center=self.center,
+                        padding=1.2,
+                    ).render_scad(*args, **kw)
+
+class Frame(SCAD_Object):
+    Defaults = {
+        "inner": {"type": Cube},
+        "outer": {"type": Cube},
+    }
+    Aliases = {
+        'i': 'inner',
+        'o': 'outer'
+    }
+    def render_scad(self, *args, **kw):
+        return Difference()(self.outer, self.inner).render_scad()
+
 class SemiCylinder(SCAD_Object):
     Defaults = {
         "angle": {"type": float, "default":180},
