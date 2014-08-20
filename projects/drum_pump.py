@@ -75,10 +75,10 @@ class DrumPumpObject(SCAD_Object):
     def endcap_closed(self):
         ec = EndCap(closed=True, **self.__dict__)
         ec = Difference()(ec, Translate(z=self.pump_body_length / 2.0)(self.pump_body.outer_body))
-        spring = SpringPedestal()
-        pedestal = spring.spring_side
-        pedestal = Translate(z=spring.pedestal_length / 2.0)(pedestal)
-        ec = Union()(pedestal, ec)
+        #spring = SpringPedestal()
+        #pedestal = spring.spring_side
+        #pedestal = Translate(z=spring.pedestal_length / 2.0)(pedestal)
+        #ec = Union()(pedestal, ec)
         return ec
 
     @property
@@ -163,9 +163,19 @@ class ValveStage(ValveBaseObject):
     stage_length = stage_inner_radius + 6
 
     @property
+    def lugs(self):
+        r = ValveHead.inlet_breech_radius + 2.0
+        lugs = LugWreath(wreath_radius=ValveHead.lug_radius, 
+                lug_length=ValveHead.lug_length, 
+                ring_radius=ValveHead.lug_ring_radius + 2.5, 
+                ring_inner_radius=ValveHead.lug_ring_inner_radius, 
+                m3_nuts_top=True)
+        return lugs
+
+    @property
     def stage(self):
         stage_length = self.stage_length + self.pump_body_thickness
-        lugs = ValveHead().lugs
+        lugs = self.lugs
         lugs = Translate(z=(stage_length - ValveHead.lug_length) / -2.0)(lugs)
         base = Cylinder(r=self.stage_inner_radius, h=self.pump_body_thickness, center=True)
         base = Translate(z=(stage_length - self.pump_body_thickness) / 2.0)(base)
@@ -178,15 +188,46 @@ class ValveStage(ValveBaseObject):
         return stage
 
     @property
-    def inlet(self):
+    def _inlet(self):
         stage = Color(colorname="steelblue")(self.stage)
         stage = Difference()(stage, self.pump_body.outer_body, self.inlet_port)
         return stage
 
     @property
-    def outlet(self):
+    def _outlet(self):
         stage = Color(colorname="salmon")(self.stage)
         stage = Difference()(stage, self.pump_body.outer_body, self.outlet_port)
+        return stage
+
+    @property
+    def valve_holes(self):
+        lug_length = 10
+        lugs = LugWreath(lug_radius=1.5, wreath_radius=3, lug_length=lug_length, lug_count=6)
+        #ccyl = Cylinder(r=1.5, h=lug_length, center=True)
+        ccyl = Cylinder(r=1.8, h=lug_length, center=True)
+        sh = Union()(lugs, ccyl)
+        sh = Rotate(x=90)(sh)
+        sh = Translate(y=(self.pump_body_radius + lug_length) / 2.0)(sh)
+        return sh
+
+    @property
+    def valve_hole_test(self):
+        lug_length = 10
+        ocyl = Cylinder(r=self.stage_inner_radius + 1, h=2, center=True)
+        ocyl = Rotate(x=90)(ocyl)
+        ocyl = Translate(y=(self.pump_body_radius + lug_length) / 2.0)(ocyl)
+        return Difference()(ocyl, self.valve_holes)
+
+    @property
+    def inlet(self):
+        stage = Color(colorname="steelblue")(self.stage)
+        stage = Difference()(stage, self.pump_body.outer_body, self.valve_holes)
+        return stage
+
+    @property
+    def outlet(self):
+        stage = Color(colorname="salmon")(self.stage)
+        stage = Difference()(stage, self.pump_body.outer_body)
         return stage
 
 class ValveHead(ValveBaseObject):
@@ -297,6 +338,10 @@ class LugWreath(DrumPumpObject):
     ring_radius = 0
     ring_inner_radius = 0
     max_angle = 360.0
+    m3_nuts_top = False
+    m3_nuts_bottom = False
+    m3_nut_radius = 3
+    m3_nut_height = 1.5
 
     @property
     def wreath(self):
@@ -315,7 +360,19 @@ class LugWreath(DrumPumpObject):
         if self.lug_inner_radius:
             return Pipe(iR=self.lug_inner_radius, oR=self.lug_radius, h=self.lug_length, padding=1.2, center=True)
         else:
-            return Cylinder(r=self.lug_radius, h=self.lug_length + 1.2, padding=1.2, center=True)
+            return Cylinder(r=self.lug_radius, h=self.lug_length + 1.2, center=True)
+
+    @property
+    def nut(self):
+        nuts = []
+        nut = Cylinder(r=self.m3_nut_radius, h=self.m3_nut_height + 0.1, fn=6, center=True)
+        if self.m3_nuts_top:
+            _nut = Translate(z=(self.lug_length - self.m3_nut_height) / 2.0)(nut)
+            nuts.append(_nut)
+        if self.m3_nuts_bottom:
+            _nut = Translate(z=(self.lug_length - self.m3_nut_height) / -2.0)(nut)
+            nuts.append(_nut)
+        return Union()(*nuts)
 
     @property
     def ring(self):
@@ -330,7 +387,15 @@ class LugWreath(DrumPumpObject):
             lug = Translate(**xy)(self.lug)
             lugs.append(lug)
         lugs = Union()(*lugs)
-        lugs = Difference()(self.ring, lugs)
+        if self.m3_nuts_top or self.m3_nuts_bottom:
+            nuts = []
+            for xy in self.wreath:
+                nut = Translate(**xy)(self.nut)
+                nuts.append(nut)
+            nuts = Union()(*nuts)
+            lugs = Difference()(self.ring, lugs, nuts)
+        else:
+            lugs = Difference()(self.ring, lugs)
         return lugs.render_scad(*args, **kw)
     
 class EndCap(DrumPumpObject):
@@ -489,7 +554,9 @@ class DrumPumpFactory(DrumPumpObject):
         outlet_stage = self.outlet_valve_stage
         outlet_stage = Rotate(Z=180)(outlet_stage)
         inlet_stage = self.inlet_valve_stage
-        return Union()(inlet_stage, outlet_stage)
+        valve_stages = Union()(inlet_stage, outlet_stage)
+        valve_stages = Intersection()(valve_stages, self.pump_bounding_box)
+        return valve_stages
 
     @property
     def valve_flaps(self):
@@ -522,7 +589,6 @@ class DrumPumpFactory(DrumPumpObject):
         ec1 = Rotate(x=180)(self.endcap_open)
         ec1 = Translate(z=self.pump_body_length * 2)(ec1)
         ec2 = Translate(z=-self.pump_body_length * 2)(self.endcap_closed)
-        #ec2 = Translate(z=-self.pump_body_length / 2)(self.endcap_closed)
         return Union()(ec1, ec2)
 
     @property
@@ -560,6 +626,11 @@ class DrumPumpFactory(DrumPumpObject):
         nozzle = Translate(y=self.pump_body_length * -2.5)(nozzle)
         nozzle = Union()(Rotate(y=-60)(nozzle), Rotate(x=180)(nozzle))
         return nozzle
+    
+    @property
+    def pump_bounding_box(self):
+        box = Cube(z=self.pump_body_length, y=100, x=self.pump_body_radius * 2, center=True)
+        return box
 
     def render_scad(self, *args, **kw):
         pump_body = Color(colorname=self.pump_body_color)(self.pump_body)
@@ -569,11 +640,11 @@ class DrumPumpFactory(DrumPumpObject):
         plate = Translate(z=self.pump_body_length * 1)(self.plate)
         coil_mount = Translate(z=self.pump_body_length * 3)(self.coil_mount)
         #scene = Union()(pump_body, self.valve_stages, self.valve_heads, self.valve_flaps, self.endcaps, self.braces, membrane)
-        scene = Union()(pump_body, self.valve_stages, self.valve_heads, self.valve_flaps, self.endcaps, membrane, plate, seal, self.nozzles, coil_mount)
+        scene = Union()(pump_body, self.valve_stages, self.valve_heads, self.valve_flaps, self.endcaps, membrane, seal, self.nozzles, coil_mount)
         scene = SCAD_Globals(fn=20)(scene)
         return scene.render_scad()
     
-    def save(self, obj, name, dxf=False, stl=True):
+    def save(self, obj, name, dxf=False, stl=True, scad_only=False):
         def load(fn):
             txt = ''
             try:
@@ -590,58 +661,63 @@ class DrumPumpFactory(DrumPumpObject):
         obj.render(fn)
         current_scad = load(fn)
         dirty = current_scad != last_scad
-        if dirty and dxf:
+        if dirty and dxf and not scad_only:
             fn = "%s.dxf" % name
             print "Saving %s" % fn
             obj.render(fn)
-        if dirty and stl:
+        if dirty and stl and not scad_only:
             fn = "%s.stl" % name
             print "Saving %s" % fn
             obj.render(fn)
 
-    def generate_bom(self):
+    def generate_bom(self, scad_only=True):
         #
         coil_mount = self.coil_mount
-        self.save(coil_mount, "coil_mount")
+        self.save(coil_mount, "coil_mount", scad_only=scad_only)
         #
         valve_flap = self.outlet_valve_flap
         valve_flap = Rotate(x=90)(valve_flap)
         valve_flap = Projection(cut=True)(valve_flap)
-        self.save(valve_flap, "valve_flap", stl=False, dxf=True)
+        self.save(valve_flap, "valve_flap", stl=False, dxf=True, scad_only=scad_only)
         #
         endcap_open = self.endcap_open
-        self.save(endcap_open, "endcap_open")
+        self.save(endcap_open, "endcap_open", scad_only=scad_only)
         #
         endcap_closed = self.endcap_closed
-        self.save(endcap_closed, "endcap_closed")
+        self.save(endcap_closed, "endcap_closed", scad_only=scad_only)
         #
         seal = self.seal
         seal = Rotate(x=90)(seal)
         seal = projection(cut=True)(seal)
-        self.save(seal, "seal", stl=False, dxf=True)
+        self.save(seal, "seal", stl=False, dxf=True, scad_only=scad_only)
         #
         plate = self.plate
         plate = Rotate(x=180)(plate)
-        self.save(plate, "plate")
+        self.save(plate, "plate", scad_only=scad_only)
         #
         membrane = self.membrane
         membrane = projection(cut=True)(membrane)
-        self.save(membrane, "membrane", stl=False, dxf=True)
+        self.save(membrane, "membrane", stl=False, dxf=True, scad_only=scad_only)
         #
         inlet_head = self.inlet_valve_head
         inlet_head = Rotate(x=-90)(inlet_head)
-        self.save(inlet_head, "inlet_head")
+        self.save(inlet_head, "inlet_head", scad_only=scad_only)
         outlet_head = self.outlet_valve_head
         outlet_head = Rotate(x=-90)(outlet_head)
-        self.save(outlet_head, "outlet_head")
+        self.save(outlet_head, "outlet_head", scad_only=scad_only)
         #
         nozzle = PumpNozzle().nozzle
-        self.save(nozzle, "nozzle")
+        self.save(nozzle, "nozzle", scad_only=scad_only)
+        #
+        valve_test = self.outlet_valve_stage.valve_hole_test
+        valve_test = Rotate(x=90)(valve_test)
+        self.save(valve_test, "valve_test", scad_only=scad_only)
         #
         pump_body = Union()(self.pump_body, self.valve_stages)
-        self.save(pump_body, "pump_body")
+        self.save(pump_body, "pump_body", scad_only=scad_only)
 
 factory = DrumPumpFactory()
 factory.render("drum_pump.scad")
-factory.generate_bom()
+#factory.generate_bom()
+factory.generate_bom(False)
 #factory.render("drum_pump.stl")
