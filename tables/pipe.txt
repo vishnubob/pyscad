@@ -1,0 +1,12 @@
+Pipe Threads					
+	American Standard			British Standard	
+Nominal O.D.	Threads Per inch	NPT	NPS	Threads per inch	Drill size
+1/16	27	D	1/4	28	G
+1/8	27	R	S	28	11/32
+1/4	18	7/16	29/64	19	15/32
+3/8	18	37/64	19/32	19	39/64
+1/2	14	23/32	47/64	14	3/4
+5/8	-	-	-	14	53/64
+3/4	14	59/64	15/16	14	31/32
+7/8	-	-	-	14	1-7/64
+1	11.5	1-5/32	1-13/16	11	1-7/32
