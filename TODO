@@ -1,7 +1,15 @@
-Fix Arc (test more than 180)
-NEMA Mount
-threads
-gears
-timing pulleys
-bearings
+Geometry:
+    - NEMA Mount
+    - threads
+    - gears
+    - timing pulleys
+    - bearings
 
+Architecture:
+    - name lookups (text based)
+    - automatic defaults from class level variables
+    - inline object translation and rotation
+    - reference points (front, back), anchors, bounding boxes
+
+Bugs:
+    - Fix Arc (test more than 180)

@@ -15,11 +15,11 @@ class Pipe(SCAD_Object):
         'i': 'inner',
         'o': 'outer'
     }
-    def render_scad(self, *args, **kw):
+    def scad(self):
         pad_offset = (self.inner.height - self.outer.height) / 2.0
         if pad_offset and not self.center:
-            return Difference()(self.outer, Translate(z=-pad_offset)( self.inner )).render_scad()
-        return Difference()(self.outer, self.inner).render_scad()
+            return Difference()(self.outer, Translate(z=-pad_offset)( self.inner ))
+        return Difference()(self.outer, self.inner)
     def get_height(self):
         return self.outer.height
     def set_height(self, height):
@@ -44,7 +44,7 @@ class Chamfer(SCAD_Object):
         "invert": {"type": bool, "default": False},
     }
 
-    def render_scad(self, *args, **kw):
+    def scad(self):
         if self.invert:
             return Pipe(
                         ir2=self.radius - self.chamfer, 
@@ -54,7 +54,7 @@ class Chamfer(SCAD_Object):
                         h=self.chamfer, 
                         center=self.center,
                         padding=1.2,
-                    ).render_scad(*args, **kw)
+                    )
         else:
             return Pipe(
                         or2=self.radius + self.chamfer, 
@@ -64,7 +64,7 @@ class Chamfer(SCAD_Object):
                         h=self.chamfer, 
                         center=self.center,
                         padding=1.2,
-                    ).render_scad(*args, **kw)
+                    )
 
 class Frame(SCAD_Object):
     Defaults = {
@@ -75,8 +75,8 @@ class Frame(SCAD_Object):
         'i': 'inner',
         'o': 'outer'
     }
-    def render_scad(self, *args, **kw):
-        return Difference()(self.outer, self.inner).render_scad()
+    def scad(self):
+        return Difference()(self.outer, self.inner)
 
 class SemiCylinder(SCAD_Object):
     Defaults = {
@@ -108,12 +108,12 @@ class SemiCylinder(SCAD_Object):
         points.append(self._xy_angle(self.angle + self.phase))
         return ListVector2D(points)
 
-    def render_scad(self, *args, **kw):
+    def scad(self):
         scad = ''
         ret = Polygon(points=self.points)
         if self.height:
             ret = LinearExtrude(height=self.height)(ret)
-        return ret.render_scad()
+        return ret
 
 class Arc(SCAD_Object):
     Defaults = {
@@ -125,8 +125,8 @@ class Arc(SCAD_Object):
         'i': 'inner',
         'o': 'outer'
     }
-    def render_scad(self, *args, **kw):
-        return Difference()(self.outer, self.inner).render_scad()
+    def scad(self):
+        return Difference()(self.outer, self.inner)
     def get_height(self):
         return self.inner.height
     def set_height(self, height):
@@ -171,8 +171,8 @@ class Octohedron(SCAD_Object):
     def triangle_height(self):
         return self.edge * (math.sqrt(3.0) / 2.0)
 
-    def render_scad(self, *args, **kw):
-        return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
+    def scad(self):
+        return Polyhedron(points=list(self.points), faces=list(self.faces))
 
 class Tetrahedron(SCAD_Object):
     Defaults = {
@@ -205,8 +205,8 @@ class Tetrahedron(SCAD_Object):
     def faces(self):
         return ListVector3D([[0, 1, 2], [1, 0, 3], [0, 2, 3], [2, 1, 3]])
 
-    def render_scad(self, *args, **kw):
-        return Polyhedron(points=list(self.points), faces=list(self.faces)).render_scad()
+    def scad(self):
+        return Polyhedron(points=list(self.points), faces=list(self.faces))
 
 """
 def pyramid(height, width=None, depth=None, center=False):

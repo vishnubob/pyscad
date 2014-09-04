@@ -44,11 +44,20 @@ class SCAD_Object(BaseObject):
         return ret
 
     def render_scad(self, *args, **kw):
-        pass
+        # override this if you are an SCAD Primitive or you wish to generate raw SCAD code
+        scad = self.scad()
+        if (scad == self):
+            raise RuntimeError, "%s has no scad() function, implementation required"
+        return self.scad().render_scad(*args, **kw)
+
+    def scad(self):
+        # override this if you are a composite of SCAD Primitives
+        return self
 
     def render(self, *args, **kw):
         engine = OpenSCAD()
-        return engine.render(self, *args, **kw)
+        scad = self.scad()
+        return engine.render(scad, *args, **kw)
 
 class SCAD_Primitive(SCAD_Object):
     SCAD_Name = '__SCAD_Primitive__'

@@ -122,12 +122,12 @@ class Glyph(SCAD_Object):
             paths.append(path)
         return {"points": points, "paths": paths}
     
-    def render_scad(self, *args, **kw):
+    def scad(self):
         pgkw = self.outline_font()
         pg = Polygon(**pgkw)
         if self.depth:
             pg = LinearExtrude(height=self.depth)(pg)
-        return pg.render_scad(*args, **kw)
+        return pg
     
     def get_char(self, ch):
         ns = self.__namespace__.copy()
@@ -153,7 +153,7 @@ class Text(Glyph):
         "kernflag": {"type": bool, "default": True}
     }
 
-    def render_scad(self, *args, **kw):
+    def scad(self):
         res = []
         xoffset = 0
         last_ch = None
@@ -166,5 +166,4 @@ class Text(Glyph):
             res.append(_ch)
             xoffset += ch.advance["x"] - 10
         ret = Union()(res)
-        return ret.render_scad(*args, **kw)
-
+        return ret
