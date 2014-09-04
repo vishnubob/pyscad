@@ -20,6 +20,8 @@ sctk = {
         "scad.vector", 
         "scad.threads", 
         "scad.text", 
+        "scad.drill", 
+        "scad.drill_sizes", 
     ],
     "version": "0.1",
 }

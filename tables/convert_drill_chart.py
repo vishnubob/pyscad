@@ -1,26 +1,34 @@
 import pprint
+import sys
 import re
 
 CodeTemplate = \
-"""from . drill import *
+"""from drill import *
+import sys
 
-fractional = DrillTable("fractional")
-wire = DrillTable("wire")
-letter = DrillTable("letter")
+def build_drill_tables():
+    self = sys.modules[__name__]
+
+    fractional = {}
+    wire = {}
+    letter = {}
 
 %s
+    ns = {}
+    ns["fractional"] = DrillTable("fractional", fractional)
+    ns["wire"] = DrillTable("wire", wire)
+    ns["letter"] = DrillTable("letter", letter)
+    ns["imperial"] = DrillTable("imperial", dict(fractional.items() + wire.items() + letter.items()))
+    self.__dict__.update(ns)
 
-imperial = DrillTable("imperial", [fractional, wire, letter])
+if "fractional" not in dir():
+    build_drill_tables()
 """
 
 
 def parse_drill_sizes():
     fractional_re = re.compile("([\w\d\.\"\/]+)[^\d]+([\d\.\"\/]+)")
     fn = "drill_sizes.txt"
-
-    wire_table = []
-    fractional_table = []
-    letter_table = []
 
     f = open(fn)
     for line in f:
@@ -37,29 +45,20 @@ def parse_drill_sizes():
                 val = val[:-1]
             val = float(val)
             try:
-                key = int(key)
-            except:
-                pass
-            if type(key) == int:
-                ds = "DrillSize('%s', %s)" % (key, val)
-                wire_table.append(ds)
-            elif key.endswith('"'):
-                ds = "DrillSize('%s', %s)" % (key, val)
-                fractional_table.append(ds)
-            else:
-                ds = "DrillSize('%s', %s)" % (key, val)
-                letter_table.append(ds)
+                int(key)
+                tablename = "wire"
+            except ValueError:
+                if key.endswith('"'):
+                    key = key[:-1]
+                    tablename = "fractional"
+                else:
+                    tablename = "letter"
+            ds = "%s[%r] = '%r inch'" % (tablename, key, val)
+            yield ds
 
-    return {
-        "wire": wire_table,
-        "fractional": fractional_table,
-        "letter": letter_table,
-    }
-
-code = ''
-res = parse_drill_sizes()
-for key in res:
-    for val in res[key]:
-        code += "%s.append(%s)\n" % (key, val)
-
-print CodeTemplate % code
+if __name__ == "__main__":
+    code = ''
+    res = parse_drill_sizes()
+    code = str.join('\n', ["    %s" % line for line in res])
+    code = CodeTemplate % code
+    sys.stdout.write(code)

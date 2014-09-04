@@ -9,7 +9,7 @@ from vector import *
 from geometry import *
 from threads import *
 from text import *
-
+import drill_sizes
 
 def configure_logger(name=None, debug=False):
     global logger

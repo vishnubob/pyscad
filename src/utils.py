@@ -1,12 +1,17 @@
 import json
 import os
-import logging
 import sys
 from ctypes import pythonapi, py_object
 from _ctypes import PyObj_FromPtr
 from operator import mul
 from fractions import Fraction
 
+# units
+from pint import UnitRegistry
+units = UnitRegistry()
+
+# logging
+import logging
 logger = logging.getLogger(__name__)
 
 def midpoint(pt1, pt2):
@@ -57,11 +62,31 @@ def load_json(json_fn):
     obj = json.loads(content)
     return obj
 
+## units
+
+def unit(val, unit="mm"):
+    if unit != None:
+        unit = units.parse_expression(unit)
+    if type(val) != units.Quantity:
+        if type(val) in (int, float):
+            assert unit, "value %r of type '%r' requires a unit definition" % (val, type(val))
+            val = val * unit
+        elif type(val) in (str, unicode):
+            val = units.parse_expression(val)
+        else:
+            raise TypeError, "I don't know how to convert type '%s' to a unit" % str(type(val))
+    assert type(val) == units.Quantity, "%r != %r" % (type(val), units.Quantity)
+    if unit:
+        val = val.to(unit)
+    return val
+
 def inch2mm(inches):
-    return inches / 0.0393701
+    inches = unit(inches)
+    return float(inches.to(units.mm))
 
 def mm2inch(mm):
-    return mm * 0.0393701
+    mm = unit(mm)
+    return float(mm.to(units.inch))
 
 # http://stackoverflow.com/questions/1724693/find-a-file-in-python
 def find(name, path):
