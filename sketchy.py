@@ -10,14 +10,14 @@ import math
 
 class StepperMotor(SCAD_Object):
     stepper_height = 47
-    stepper_width = 42.3
-    stepper_depth = 42.3
-    stepper_bodycut = 52
+    stepper_width = 42.3 + .2
+    stepper_depth = 42.3 + .2
+    stepper_bodycut = 54
     center_standoff_dia = 22
     center_standoff_height = 5
     stepper_screw_offset = 31 / 2.0
     stepper_screw_length = 5
-    stepper_screw_dia = 3.1
+    stepper_screw_dia = 3.1 + .3
 
     def scad(self):
         body = Cube(x=self.stepper_width, y=self.stepper_depth, z=self.stepper_height, center=True)
@@ -38,14 +38,19 @@ class StepperMotor(SCAD_Object):
         return stepper
 
 class StepperMotorChassis(StepperMotor):
-    chassis_height = StepperMotor.stepper_height + 2
+    #chassis_height = StepperMotor.stepper_height + 2
+    chassis_height = 4
     chassis_width = StepperMotor.stepper_width + 2
     chassis_depth = StepperMotor.stepper_depth + 2
 
     def scad(self):
         stepper = super(StepperMotorChassis, self).scad()
         body = Cube(x=self.chassis_width, y=self.chassis_depth, z=self.chassis_height, center=True)
-        body = Translate(z=2)(body)
+        if self.chassis_height > self.stepper_height:
+            zoffset = 2 - (self.chassis_height - self.stepper_height) / 2.0
+        else:
+            zoffset = (self.stepper_height - self.chassis_height) / 2.0 + 2
+        body = Translate(z=(zoffset))(body)
         cut1 = Cube(x=self.chassis_width + 2, y=self.chassis_depth - 13, z=self.chassis_height - 4, center=True)
         cut2 = Cube(x=self.chassis_width - 13, y=self.chassis_depth + 2, z=self.chassis_height - 4, center=True)
         cut = Translate(z=-4)(cut1, cut2)
@@ -64,16 +69,8 @@ class Pulley(SCAD_Object):
     pulley_radius = pulley_circ / (2 * math.pi)
     pulley_thickness = 6
     screw_dia = 2.5
-    # skirt
-    skirt_thickness = (pulley_thickness / 3.0) * .9
-    skirt_radius = pulley_radius + .5
 
-    def scad(self):
-        pulley_top = Pipe(oR1=self.pulley_radius, iR1=self.shaft_radius, oR2=self.pulley_radius + 1, iR2=self.shaft_radius, h=self.pulley_thickness / 2.0, center=True, padding=1.2)
-        pulley_top = Translate(z=self.pulley_thickness / 4.0)(pulley_top)
-        pulley_bottom = Pipe(oR1=self.pulley_radius + 1, iR1=self.shaft_radius, oR2=self.pulley_radius, iR2=self.shaft_radius, h=self.pulley_thickness / 2.0, center=True, padding=1.2)
-        pulley_bottom = Translate(z=self.pulley_thickness / -4.0)(pulley_bottom)
-        pulley = Union()(pulley_bottom, pulley_top)
+    def get_balls(self):
         balls = []
         ball = Sphere(dia=self.ball_dia * 1.05)
         for ballidx in range(self.ball_count):
@@ -83,34 +80,70 @@ class Pulley(SCAD_Object):
             obj = Translate(x=x, y=y)(ball)
             balls.append(obj)
         balls = Union()(*balls)
-        gulley = Pipe(oR=self.pulley_radius, iR=self.pulley_radius - self.ball_dia / 2.0, h=self.ball_spacing_thickness, center=True)
+        return balls
+
+    def pulley_top(self):
+        pulley_top = Cylinder(R1=self.pulley_radius, R2=self.pulley_radius + 1, h=self.pulley_thickness / 2.0, center=True, padding=1.2)
+        pulley_top = Translate(z=self.pulley_thickness / 4.0)(pulley_top)
+        center_shaft = Cylinder(r=self.shaft_radius, h=self.pulley_thickness * 2, center=True)()
+        key = Cube(x=2, y=2, z=1, center=True)()
+        key1 = Translate(x=(2 * self.shaft_radius + 1) / 2.0, z=-.5)(key)
+        key2 = Translate(x=(2 * self.shaft_radius + 1) / -2.0, z=-.5)(key)
+        pulley_top = Union()(pulley_top, key1, key2)
+        pulley_top = Difference()(pulley_top, center_shaft)
+        return pulley_top
+
+    def pulley_bottom(self):
+        pulley_bottom = Pipe(oR1=self.pulley_radius + 1, iR1=self.shaft_radius, oR2=self.pulley_radius, iR2=self.shaft_radius, h=self.pulley_thickness / 2.0, center=True, padding=1.2)
+        pulley_bottom = Translate(z=self.pulley_thickness / -4.0)(pulley_bottom)
+        key = Cube(x=2, y=2, z=1.1, center=True)()
+        key1 = Translate(x=(2 * self.shaft_radius + 1) / 2.0, z=-.5)(key)
+        key2 = Translate(x=(2 * self.shaft_radius + 1) / -2.0, z=-.5)(key)
+        key3 = Translate(y=(2 * self.shaft_radius + 1) / 2.0, z=-2.55)(key)
+        key4 = Translate(y=(2 * self.shaft_radius + 1) / -2.0, z=-2.55)(key)
+        pulley_bottom = Difference()(pulley_bottom, key1, key2, key3, key4)
+        return pulley_bottom
+
+    def pulley_full(self):
+        pulley_top = self.pulley_top()
+        pulley_bottom = self.pulley_bottom()
+        pulley = Union()(pulley_bottom, pulley_top)
+        return pulley
+
+    def pulley(self, mode="full"):
+        func = "pulley_" + mode
+        func = getattr(self, func)
+        pulley = func()
+        balls = self.get_balls()
+        pulley = Difference()(pulley, balls)
+        return pulley
+
+    def collar(self):
         collar = Pipe(oR=self.collar_radius, iR=self.shaft_radius, h=self.collar_thickness, center=True, padding=1.2)
         collar = Translate(z=(self.collar_thickness + self.pulley_thickness) / 2.0)(collar)
         collar_screw = Cylinder(dia=self.screw_dia, h=self.collar_thickness * 2)
-        # skirt
-        #lower_skirt = Pipe(oR1=self.skirt_radius, iR1=self.pulley_radius, oR2=self.pulley_radius, iR2=self.pulley_radius, h=self.skirt_thickness, center=True, padding=1.2)
-        #lower_skirt = Translate(z=(self.pulley_thickness - self.skirt_thickness) / 2.0 )(lower_skirt)
-        #pulley = Union()(pulley, lower_skirt)
-
         cs1 = Rotate(x=90)(collar_screw)
         cs2 = Rotate(y=90)(collar_screw)
         collar_screws = Translate(z=(self.collar_thickness + self.pulley_thickness) / 2.0)(cs1, cs2)
         collar = Difference()(collar, collar_screws)
-        #pulley = Difference()(pulley, balls, gulley)
-        pulley = Difference()(pulley, balls)
-        #pulley = Union()(pulley, collar)
-        return pulley
+        return collar
+
+    def scad(self):
+        return self.pulley()
 
 def render(obj, fn):
     _fn = fn + '.scad'
-    obj.render(_fn)
+    _obj = SCAD_Globals(fn=20)(obj)
+    _obj.render(_fn)
     _fn = fn + '.stl'
     if not os.path.exists(_fn):
-        _obj = SCAD_Globals(fn=40)(obj)
+        _obj = SCAD_Globals(fn=50)(obj)
         _obj.render(_fn)
 
 pulley = Pulley()
 render(pulley, "pulley")
+render(pulley.pulley("top"), "pulley_top")
+render(pulley.pulley("bottom"), "pulley_bottom")
 #
 stepper = StepperMotor()
 render(stepper, "stepper")

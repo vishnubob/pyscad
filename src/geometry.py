@@ -10,6 +10,7 @@ class Pipe(SCAD_Object):
         "inner": {"type": Cylinder},
         "outer": {"type": Cylinder},
         "_padding": {"type": float, "default": 1.0},
+        "render": {"type": bool, "default": True},
     }
     Aliases = {
         'i': 'inner',
@@ -18,8 +19,12 @@ class Pipe(SCAD_Object):
     def scad(self):
         pad_offset = (self.inner.height - self.outer.height) / 2.0
         if pad_offset and not self.center:
-            return Difference()(self.outer, Translate(z=-pad_offset)( self.inner ))
-        return Difference()(self.outer, self.inner)
+            pipe = Difference()(self.outer, Translate(z=-pad_offset)( self.inner ))
+        else:
+            pipe = Difference()(self.outer, self.inner)
+        if self.render:
+            pipe = Render()(pipe)
+        return pipe
     def get_height(self):
         return self.outer.height
     def set_height(self, height):
