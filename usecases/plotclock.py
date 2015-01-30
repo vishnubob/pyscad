@@ -144,7 +144,7 @@ class AftArm(Arm):
         return aftarm
 
 class LiftArm(AftArm):
-    linkage_length = 8
+    linkage_length = 17
 
 class ForeArm(Arm):
     linkage_length = 45
@@ -206,41 +206,65 @@ class BasePlate(SCAD_Object):
     plate_thickness = Arm.linkage_height
     # plate pivot
     pivot_plate_length = plate_thickness * 3 + 0.2
-    pivot_plate_width = 20
+    pivot_plate_width = 30
     pivot_plate_thickness = Arm.linkage_height
     # pillars
     pillar_inner_dia = 2.5
     pillar_dia = pillar_inner_dia + 3
-    pillar_x_spread = (plate_width - pillar_dia) / 2.0 - 1
-    pillar_y_spread = (plate_length - pillar_dia) / 2.0 - 1
-    pillar_height = 40
+    pillar_x_spread = (plate_width - pillar_dia) / 2.0 - 2
+    pillar_y_spread = (plate_length - pillar_dia) / 2.0 - 2
+    pillar_height = 32
     # pivot
     pivot_inner_dia = Arm.pivot_inner_dia
     pivot_dia = pivot_inner_dia + 5
     pivot_height = Arm.linkage_height
+    pivot_width = 10
     # servo mount
     screw_offset = Servo.servo_width / 2.0 + 2.4
     screw_dia = 1.9
-    servo_mount_width = Servo.servo_width + 10
+    servo_mount_width = Servo.servo_width + 14
     servo_mount_height = Servo.servo_depth - 0.01
-    servo_mount_thickness = plate_thickness
-    draw_servo = True
+    servo_mount_thickness = plate_thickness * 3
+    servo_mount_offset = 14.5
+    draw_servo = False
+
+    def pillars(self):
+        pillar = Cube(x=self.pillar_dia, y=self.pillar_dia, z=self.pillar_height, center=True)
+        screw_hole = Cylinder(d=self.pillar_inner_dia, h=self.pillar_height + 2)
+        pillar = Difference()(pillar, screw_hole)
+        z_offset = (self.pillar_height + self.plate_thickness) / 2.0
+        pillar = Translate(z=z_offset)(pillar)
+        pillar1 = Translate(x=self.pillar_x_spread, y=self.pillar_y_spread)(pillar)
+        pillar2 = Translate(x=-self.pillar_x_spread, y=self.pillar_y_spread)(pillar)
+        pillar3 = Translate(x=self.pillar_x_spread, y=-self.pillar_y_spread)(pillar)
+        pillar4 = Translate(x=-self.pillar_x_spread, y=-self.pillar_y_spread)(pillar)
+        pillars = Union()(pillar1, pillar2, pillar3, pillar4)
+        return pillars
+
+    def screw_holes(self):
+        screw_hole = Cylinder(d=self.pillar_inner_dia, h=self.pillar_height + 2, center=True)
+        screw_hole1 = Translate(x=self.pillar_x_spread, y=self.pillar_y_spread)(screw_hole)
+        screw_hole2 = Translate(x=-self.pillar_x_spread, y=self.pillar_y_spread)(screw_hole)
+        screw_hole3 = Translate(x=self.pillar_x_spread, y=-self.pillar_y_spread)(screw_hole)
+        screw_hole4 = Translate(x=-self.pillar_x_spread, y=-self.pillar_y_spread)(screw_hole)
+        screw_holes = Union()(screw_hole1, screw_hole2, screw_hole3, screw_hole4)
+        return screw_holes
 
     def scad(self):
         plate = Cube(x=self.plate_length, y=self.plate_width, z=self.plate_thickness, center=True)
+        screw_holes = self.screw_holes()
+        plate = Difference()(plate, screw_holes)
         # servo hole
         servo = Servo()
-        if self.draw_servo:
-            servo_body = servo.servo()
-        else:
-            servo_body = servo.servo_body()
+        servo_body = servo()
         servo_body = Rotate(z=90, x=90)(servo_body)
         z_offset = (servo.servo_depth + self.plate_thickness) / 2.0
-        x_offset = -(self.servo_mount_thickness + Servo.ears_height)
+        x_offset = -(self.servo_mount_thickness / 3.0 + Servo.ears_height)
         servo_body = Translate(z=z_offset, x=x_offset)(servo_body)
         servo_mount = Cube(y=self.servo_mount_width, x=self.servo_mount_thickness, z=self.servo_mount_height, center=True)
         z_offset = (self.servo_mount_height + self.plate_thickness) / 2.0
-        servo_mount = Translate(z=z_offset)(servo_mount)
+        x_offset = self.servo_mount_thickness / -3.0
+        servo_mount = Translate(z=z_offset, x=x_offset)(servo_mount)
         if self.draw_servo:
             servo_mount = Union()(servo_mount, servo_body)
         else:
@@ -249,26 +273,22 @@ class BasePlate(SCAD_Object):
         screw_hole = Rotate(y=90)(screw_hole)
         z_offset = (self.plate_thickness + Servo.servo_depth) / 2.0
         y_offset = self.screw_offset
-        screw_hole1 = Translate(z=z_offset, y=y_offset)(screw_hole)
-        screw_hole2 = Translate(z=z_offset, y=-y_offset)(screw_hole)
+        x_offset = self.servo_mount_thickness / -3.0
+        screw_hole1 = Translate(z=z_offset, x=x_offset, y=y_offset)(screw_hole)
+        screw_hole2 = Translate(z=z_offset, x=x_offset, y=-y_offset)(screw_hole)
         servo_mount = Difference()(servo_mount, screw_hole1, screw_hole2)
+        servo_mount = Translate(x=-self.servo_mount_offset)(servo_mount)
         plate = Union()(servo_mount, plate)
-        # pillars
-        pillar = Pipe(iD=self.pillar_inner_dia, oD=self.pillar_dia, h=self.pillar_height, center=True)
-        z_offset = (self.pillar_height + self.plate_thickness) / 2.0
-        pillar = Translate(z=z_offset)(pillar)
-        pillar1 = Translate(x=self.pillar_x_spread, y=self.pillar_y_spread)(pillar)
-        pillar2 = Translate(x=-self.pillar_x_spread, y=self.pillar_y_spread)(pillar)
-        pillar3 = Translate(x=self.pillar_x_spread, y=-self.pillar_y_spread)(pillar)
-        pillar4 = Translate(x=-self.pillar_x_spread, y=-self.pillar_y_spread)(pillar)
-        pillars = Union()(pillar1, pillar2, pillar3, pillar4)
         # pivot plate
-        pivot = Cube(x=self.pivot_dia, y=self.pivot_dia, z=self.pivot_height, center=True)
+        pivot = Cube(x=self.pivot_dia, y=self.pivot_width, z=self.pivot_height, center=True)
         pivot_hole = Cylinder(d=self.pivot_inner_dia, h=self.pivot_height + 2, center=True)
+        x_offset = 1.0
+        y_offset = (self.pivot_width - self.pivot_dia) / 2.0
+        pivot_hole = Translate(y=y_offset, x=-x_offset)(pivot_hole)
         pivot = Difference()(pivot, pivot_hole)
         pivot = Rotate(y=90)(pivot)
         z_offset = (self.pivot_height + self.pivot_dia) / 2.0
-        y_offset = (self.pivot_plate_width - self.pivot_dia) / 2.0
+        y_offset = (self.pivot_plate_width - self.pivot_width) / 2.0
         x_offset = (self.pivot_plate_length - self.pivot_plate_thickness) /  2.0
         pivot1 = Translate(z=z_offset, x=x_offset, y=y_offset)(pivot)
         pivot2 = Translate(z=z_offset, x=-x_offset, y=y_offset)(pivot)
@@ -276,7 +296,7 @@ class BasePlate(SCAD_Object):
         pivot_plate = Union()(pivot1, pivot2, pivot_plate)
         y_offset = (self.plate_width + self.pivot_plate_width) / 2.0
         pivot_plate = Translate(y=y_offset)(pivot_plate)
-        plate = Union()(plate, pivot_plate, pillars)
+        plate = Union()(plate, pivot_plate)
         return plate
 
 class ServoPlate(SCAD_Object):
@@ -352,6 +372,7 @@ class ServoPlate(SCAD_Object):
 class Plotter(SCAD_Object):
     def scad(self):
         base_plate = BasePlate()
+        pillars = base_plate.pillars()
         servo_plate = ServoPlate()
         z_offset = servo_plate.height
         y_offset = (base_plate.plate_width + servo_plate.plate_width) / 2.0
@@ -360,10 +381,10 @@ class Plotter(SCAD_Object):
         lift_arm = LiftArm()
         lift_arm = Rotate(y=-90, z=180)(lift_arm)
         y_offset = (Servo.servo_width - Servo.pedestal_dia) / 2.0
-        x_offset = 12
+        x_offset = LiftArm.linkage_height / -2.0 
         z_offset = (BasePlate.plate_thickness + Servo.servo_depth) / 2.0
         lift_arm = Translate(x=x_offset, y=y_offset, z=z_offset)(lift_arm)
-        plotter = Union()(lift_arm, base_plate, servo_plate)
+        plotter = Union()(lift_arm, base_plate, servo_plate, pillars)
         return plotter
 
 def render(obj, fn):
