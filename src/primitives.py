@@ -72,8 +72,46 @@ class Hull(SCAD_Primitive):
 class Render(SCAD_Primitive):
     SCAD_Name = "render"
 
-class Rotate(Vector3D_SCAD_Primitive):
+class Rotate(SCAD_Primitive):
     SCAD_Name = "rotate"
+    Aliases = {
+        'vx': 'vector.x',
+        'vy': 'vector.y',
+        'vz': 'vector.z',
+        'x': 'angle.x',
+        'y': 'angle.y',
+        'z': 'angle.z',
+        'a': 'angle',
+        'v': 'vector',
+    }
+    Defaults = {
+        "deg_a": {"type": float, "default": None},
+        "vector": {"type": Vector3D, "default": None},
+        "angle": {"type": Vector3D, "default": lambda: Vector3D([0.0, 0.0, 0.0])},
+    }
+
+    def __init__(self, *args, **kw):
+        kw = kw.copy()
+        if args:
+            if type(args[0]) in (int, float):
+                kw["deg_a"] = args[0]
+            else:
+                kw["angle"] = args[0]
+            if len(args) > 1:
+                kw["vector"] = args[1]
+        super(SCAD_Primitive, self).__init__(**kw)
+    
+    def get_scad_args(self):
+        args = []
+        if self.deg_a != None:
+            arg = ("a", self.deg_a)
+        else:
+            arg = ("a", self.angle)
+        args.append(arg)
+        if self.vector != None:
+            arg = ("v", self.vector)
+            args.append(arg)
+        return args
 
 class Scale(Vector3D_SCAD_Primitive):
     SCAD_Name = "scale"

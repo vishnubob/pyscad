@@ -33,7 +33,7 @@ def make_front_hanger():
         Union()(
             Translate(x=(inner_width + vert_rod_dia) / -3.5, y=yoff_front)( make_screw_hole(10) ),
             Translate(x=(inner_width + vert_rod_dia) / 3.5, y=yoff_front)( make_screw_hole(10) ),
-            Translate(y=0)( Rotate(x=90)( Cylinder(dia=m3_dia, h=front_plate().h * 2, fn=40) )),
+            Translate(y=0)( Rotate(x=90)( Cylinder(dia=m3_dia, h=front_plate().z * 2, fn=40) )),
         ))
 
 def make_back_hanger():
@@ -79,11 +79,11 @@ def make_cross_beams():
     )
 
 def make_hook():
-    hook_height = in2mm(.5)
-    hook_length = in2mm(.2)
-    base_height = in2mm(.7) - hook_height
-    base_length = in2mm(.9) - hook_length
-    hook_width = in2mm(.25)
+    hook_height = inch2mm(.5)
+    hook_length = inch2mm(.2)
+    base_height = inch2mm(.7) - hook_height
+    base_length = inch2mm(.9) - hook_length
+    hook_width = inch2mm(.25)
 
     points = [ [0, 0], [0, base_height], 
             [base_length, base_height], 
@@ -94,22 +94,22 @@ def make_hook():
     #return LinearExtrude(h=hook_width)( Polygon(points=points) )
     #return Union()(
     return Minkowski()(
-        #Translate(z=hook_width/2)( Sphere(d=in2mm(.25), fn=20) ),
-        Translate(z=hook_width/2, y=.26)( Cylinder(d=in2mm(.25), h=1, fn=20) ),
+        #Translate(z=hook_width/2)( Sphere(d=inch2mm(.25), fn=20) ),
+        Translate(z=hook_width/2, y=.26)( Cylinder(d=inch2mm(.25), h=1, fn=20) ),
         LinearExtrude(h=hook_width)( Polygon(points=points) ))
 
 def make_hook_plate():
-    plate_length = in2mm(6)
-    plate_height = in2mm(1)
+    plate_length = inch2mm(6)
+    plate_height = inch2mm(1)
     plate_depth = 4
-    hook = lambda idx: Translate(x = plate_length / 2 - in2mm(.25) + in2mm(idx), y=plate_height / 2)( Rotate(x=90, y=270, z=90)( make_hook() ))
+    hook = lambda idx: Translate(x = plate_length / 2 - inch2mm(.25) + inch2mm(idx), y=plate_height / 2)( Rotate(x=90, y=270, z=90)( make_hook() ))
     return Union()( 
             Difference() (
                 Cube(x=plate_length, y=plate_height, z=plate_depth, center=True),
-                Translate(x=plate_length / 2 - in2mm(.5), z=.2)( Rotate(x=270)( make_screw_hole(plate_depth+4) )),
-                Translate(x=plate_length / -2 + in2mm(.5), z=.2)( Rotate(x=270)( make_screw_hole(plate_depth+4) )),
+                Translate(x=plate_length / 2 - inch2mm(.5), z=.2)( Rotate(x=270)( make_screw_hole(plate_depth+4) )),
+                Translate(x=plate_length / -2 + inch2mm(.5), z=.2)( Rotate(x=270)( make_screw_hole(plate_depth+4) )),
             ),
-            Translate(x=in2mm(-1), y=in2mm(-.25 + .135), z=in2mm(.05) )( *[hook(-idx) for idx in range(5)] )
+            Translate(x=inch2mm(-1), y=inch2mm(-.25 + .135), z=inch2mm(.05) )( *[hook(-idx) for idx in range(5)] )
         )
 
 def make_base_pole():

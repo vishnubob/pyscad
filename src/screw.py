@@ -3,73 +3,61 @@ from scad import *
 
 class Thread(SCAD_Object):
     major_diameter = 0
-    minor_diameter = 0
-    pitch_diameter = 0
     pitch = 0
     length = 0
     thread_angle = math.radians(60)
     resolution = 100
 
     @property
-    def crest_length(self):
+    def height(self):
+        return math.cos(math.radians(30)) * self.pitch
+
+    @property
+    def minor_diameter(self):
+        return self.major_diameter - (1.25 * self.height)
+
+    @property
+    def pitch_diameter(self):
+        return self.major_diameter - (0.75 * self.height)
+
+    @property
+    def crest_offset(self):
         return self.pitch / 8.0
 
     @property
-    def root_length(self):
+    def valley_offset(self):
         return self.pitch / 4.0
 
     @property
-    def slope_length(self):
-        return (self.pitch - self.crest_length + self.root_length) / 2.0
+    def slope_offset(self):
+        return self.pitch * (3 / 16.0)
 
-    @property
-    def pitch_radius(self):
-        return self.pitch_diameter / 2.0
+    def thread_profile(self, offset=(0, 0, 0)):
+        z = 0
+        pt1 = (0, self.minor_diameter, z)
+        z += self.valley_offset
+        pt2 = (0, self.minor_diameter, z)
+        z += self.slope_offset
+        pt3 = (0, self.major_diameter, z)
+        z += self.crest_offset
+        pt4 = (0, self.major_diameter, z)
+        z += self.slope_offset
+        pt5 = (0, self.minor_diameter, z)
+        points = [pt1, pt2, pt3, pt4, pt5]
+        points = [(x + offset[0], y + offset[1], z + offset[2]) for (x, y, z) in points]
+        return points
 
-    @property
-    def major_radius(self):
-        return self.major_diameter / 2.0
-
-    @property
-    def minor_radius(self):
-        return self.minor_diameter / 2.0
-    
-    def runs(self):
-        self.helix(0, self.minor_radius, self.length)
-        self.helix(self.root_length, self.minor_radius, self.length)
-        self.helix(self.root_length + self.slope_length, self.pitch_radius, self.length)
-        self.helix(self.root_length + self.slope_length + self.crest_length, self.pitch_radius, self.length)
-
-    def helix(self, radius, length):
-        rstep = (math.pi * 2) / resolution
-        zstep = self.pitch / resolution
-        for step in range(resolution):
-            angle = rstep * step
-            zoffset = zstep * step 
-            res = (math.cos(angle), math.sin(angle), zoffset)
-            yield res
-    
-    def profile(self, offset=(0, 0, 0)):
-        (xo, yo, zo) = offset
-        x_top = self.cos(self.thread_angle) * (self.major_radius - self.minor_radius)
-        y_top = self.sin(self.thread_angle) * (self.major_radius - self.minor_radius)
-        profile = [
-            # left point of trough
-            (self.pitch + xo, self.pitch_radius + yo, zo),
-            # right point of trough
-            (self.pitch * 0.25 + xo, self.pitch_radius + yo, zo),
-            # left point of peak
-            (x_top + self.pitch * 0.25 + xo, y_top + self.pitch_radius + yo, zo),
-            # right point of peak
-            (x_top + self.pitch * 0.375 + xo, y_top + self.pitch_radius + yo, zo),
-            # left point of trough
-            (self.pitch * 0.875 + xo, self.pitch_radius + yo, zo),
+    def scad(self):
+        points = self.thread_profile()
+        points += self.thread_profile((5, 0, 0))
+        faces = [
+            [0, 1, 5], [5, 6, 1],
+            [1, 2, 6], [6, 7, 2],
+            [2, 3, 7], [7, 8, 3],
+            [3, 4, 8], [8, 9, 4],
         ]
-        return profile
+        p = Polyhedron(points=points, faces=faces)
+        return p
 
-    def profiles(self):
-        rstep = (math.pi * 2) / resolution
-        zstep = self.pitch / resolution
-        for step in range(resolution):
-            angle = rstep * step
-            zoffset = zstep * step 
+t = Thread(pitch=2, major_diameter=2)
+t.render("threads.scad")

@@ -63,6 +63,19 @@ class TestRadialResolution(unittest.TestCase):
         answer = "cylinder(r=20.0, h=10.0, center=false);"
         code_compare(c.render_scad(), answer)
 
+class TestRotate(unittest.TestCase):
+    def test_rotate(self):
+        cyl = Cylinder(h=10, r=20)
+        c = Rotate(x=20, y=30, z=40)(cyl)
+        answer = "rotate(a=[20.0,30.0,40.0]){cylinder(r=20.0,h=10.0,center=false);}"
+        code_compare(c.render_scad(), answer)
+        c = Rotate(20)(cyl)
+        answer = "rotate(a=20.0){cylinder(r=20.0,h=10.0,center=false);}"
+        code_compare(c.render_scad(), answer)
+        c = Rotate(20, [0, 0, 1])(cyl)
+        answer = "rotate(a=20.0,v=[0.0,0.0,1.0]){cylinder(r=20.0,h=10.0,center=false);}"
+        code_compare(c.render_scad(), answer)
+
 class TestCylinder(unittest.TestCase):
     def test_sphere_creation(self):
         c = Cylinder(h=10, r=20)
@@ -217,7 +230,7 @@ class TestGeometry(unittest.TestCase):
         Pipe()
         p = Pipe()
         scad = p.render_scad()
-        answer = "difference(){cylinder(r=1.0,h=1.0,center=false);cylinder(r=1.0,h=1.0,center=false);}"
+        answer = "render(){difference(){cylinder(r=1.0,h=1.0,center=false);cylinder(r=1.0,h=1.0,center=false);}}"
         code_compare(scad, answer)
         p = Pipe(or1=8, or2=5, ir1=7, ir2=2, h=20.0)
         self.assertEquals(p.ir, 7.0)
@@ -227,7 +240,7 @@ class TestGeometry(unittest.TestCase):
         self.assertEquals(p.outer.r2, 5.0)
         self.assertEquals(p.height, 20.0)
         scad = p.render_scad()
-        answer = 'difference() {\n    cylinder(r1=8.0, r2=5.0, h=20.0, center=false);\n    cylinder(r1=7.0, r2=2.0, h=20.0, center=false);\n}'
+        answer = "render(){difference(){cylinder(r1=8.0,r2=5.0,h=20.0,center=false);cylinder(r1=7.0,r2=2.0,h=20.0,center=false);}}"
         code_compare(scad, answer)
 
     def _test_octohedron(self):
