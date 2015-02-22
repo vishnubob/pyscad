@@ -1,6 +1,69 @@
 import math
 from scad import *
 
+class Helix(object):
+    def __init__(self, radius, pitch, height, resolution=20, offset=(0, 0, 0)):
+        self.radius = radius
+        self.pitch = pitch
+        self.height = height
+        self.resolution = resolution
+        self.offset = offset
+
+    def __len__(self):
+        return int(self.height / self.pitch * self.resolution)
+
+    def __iter__(self):
+        angle_step = (2 * math.pi) / self.resolution
+        pitch_step = self.pitch / (2 * math.pi)
+        (xo, yo, zo) = self.offset
+        for idx in range(len(self)):
+            angle = angle_step * idx
+            x = self.radius * math.cos(angle) + xo
+            y = self.radius * math.sin(angle) + yo
+            z = pitch_step * angle + zo
+            yield (x, y, z)
+
+class HelixStitcher(SCAD_Object):
+    def __init__(self, helix_list):
+        self.helix_list = helix_list
+
+    def scad(self):
+        points = []
+        for helix in self.helix_list:
+            points.extend(list(helix))
+        faces = []
+        helix = self.helix_list[0]
+        point_count = len(helix)
+        resolution = helix.resolution
+        for hidx in range(len(self.helix_list)):
+            offset = point_count * hidx
+            next_helix = (offset + point_count) % len(points)
+            previous_helix = (offset - point_count) % len(points)
+            for idx in range(point_count):
+                if hidx < (len(self.helix_list) - 1):
+                    if idx < (point_count - 1):
+                        face = (offset + idx, offset + idx + 1, next_helix + idx)
+                        faces.append(face)
+                else:
+                    if (idx + resolution) < point_count:
+                        face = (offset + idx, offset + idx + 1, next_helix + idx + resolution)
+                        faces.append(face)
+                if hidx == 0:
+                    if (idx - resolution) > 0:
+                        face = (offset + idx, offset + idx - 1, previous_helix + idx - resolution)
+                        faces.append(face)
+                elif idx > 0:
+                    face = (offset + idx, offset + idx - 1, previous_helix + idx)
+                    faces.append(face)
+        return Polyhedron(points=points, faces=faces)
+
+helix1 = Helix(10, 8, 40, 10)
+helix2 = Helix(15, 8, 40, 10, offset=(0, 0, 2))
+helix3 = Helix(13, 8, 40, 10, offset=(0, 0, 4))
+hlist = [helix1, helix2, helix3]
+hs = HelixStitcher(hlist)
+hs.render("helix.scad")
+
 class Thread(SCAD_Object):
     major_diameter = 0
     pitch = 0
