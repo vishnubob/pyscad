@@ -2,15 +2,25 @@ import math
 from scad import *
 
 class Helix(object):
-    def __init__(self, radius, pitch, height, resolution=20, offset=(0, 0, 0)):
+    def __init__(self, radius, pitch, height, resolution=20, offset=(0, 0, 0), min_limit=(None, None, None), max_limit=(None, None, None)):
         self.radius = radius
         self.pitch = pitch
         self.height = height
         self.resolution = resolution
         self.offset = offset
+        self.min_limit = min_limit
+        self.max_limit = max_limit
 
     def __len__(self):
         return int(self.height / self.pitch * self.resolution)
+
+    def apply_limits(self, xyz):
+        ret = []
+        for (val, _min, _max) in zip(xyz, self.min_limit, self.max_limit):
+            val = _min if (_min != None and _min > val) else val
+            val = _max if (_max != None and _max < val) else val
+            ret.append(val)
+        return tuple(ret)
 
     def __iter__(self):
         angle_step = (2 * math.pi) / self.resolution
@@ -21,7 +31,7 @@ class Helix(object):
             x = self.radius * math.cos(angle) + xo
             y = self.radius * math.sin(angle) + yo
             z = pitch_step * angle + zo
-            yield (x, y, z)
+            yield self.apply_limits((x, y, z))
 
 class HelixStitcher(SCAD_Object):
     def __init__(self, helix_list):
