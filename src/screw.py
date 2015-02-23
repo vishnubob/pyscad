@@ -135,6 +135,10 @@ class Screw(SCAD_Object):
                     if next_pt[2] > pt[2]:
                         face = (idx + offset, idx + offset + 1, next_idx + next_offset)
                         faces.append(face)
+                        last_next_idx = next_idx
+                    else:
+                        face = (idx + offset, idx + offset + 1, last_next_idx + next_offset)
+                        faces.append(face)
                 if idx > 0:
                     (prev_pt, prev_idx, distance) = prev_helix["select"].nearest(pt)
                     if prev_pt[2] < pt[2]:
