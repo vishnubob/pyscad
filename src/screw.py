@@ -120,8 +120,19 @@ class Screw(SCAD_Object):
             helix_list.append(helix_map)
         return (points, helix_list)
 
+    def snap(self, point, z_value):
+        return (point[0], point[1], z_value)
+
+    def snap_face(self, points, face, z_value):
+        for idx in face:
+            points[idx] = self.snap(points[idx], z_value)
+
     def build_screw(self, helix_list):
         (points, helix_list) = self.prepare_helix_list(helix_list)
+        bottom_idx = len(points)
+        points.append((0, 0, 0))
+        top_idx = len(points)
+        points.append((0, 0, self.length))
         faces = []
         for (hidx, helix) in enumerate(helix_list):
             next_helix = helix_list[(hidx + 1) % len(helix_list)]
@@ -129,20 +140,38 @@ class Screw(SCAD_Object):
             offset = helix["offset"]
             next_offset = next_helix["offset"]
             prev_offset = prev_helix["offset"]
+            top_flag = False
+            bottom_flag = False
             for (idx, pt) in enumerate(helix["points"]):
                 if idx < (len(helix["points"]) - 1):
                     (next_pt, next_idx, distance) = next_helix["select"].nearest(pt)
                     if next_pt[2] > pt[2]:
-                        face = (idx + offset, idx + offset + 1, next_idx + next_offset)
+                        face = (idx + offset + 1, idx + offset, next_idx + next_offset)
                         faces.append(face)
-                        last_next_idx = next_idx
                     else:
-                        face = (idx + offset, idx + offset + 1, last_next_idx + next_offset)
+                        if not top_flag:
+                            top_flag = True
+                            previous_pt = helix["points"][idx - 1]
+                            (next_pt, next_idx, distance) = next_helix["select"].nearest(previous_pt)
+                            face = (idx + offset, next_idx + next_offset, top_idx)
+                            #self.snap_face(points, face, self.length)
+                            faces.append(face)
+                        face = (idx + offset + 1, idx + offset, top_idx)
+                        #self.snap_face(points, face, self.length)
                         faces.append(face)
                 if idx > 0:
                     (prev_pt, prev_idx, distance) = prev_helix["select"].nearest(pt)
                     if prev_pt[2] < pt[2]:
-                        face = (idx + offset, idx + offset - 1, prev_idx + prev_offset)
+                        face = (idx + offset - 1, idx + offset, prev_idx + prev_offset)
+                        faces.append(face)
+                        if not bottom_flag:
+                            bottom_flag = True
+                            face = (idx + offset - 1, prev_idx + prev_offset, bottom_idx)
+                            #self.snap_face(points, face, 0)
+                            faces.append(face)
+                    else:
+                        face = (idx + offset - 1, idx + offset, bottom_idx)
+                        #self.snap_face(points, face, 0)
                         faces.append(face)
         return Polyhedron(points=points, faces=faces)
 
@@ -162,16 +191,18 @@ class Screw(SCAD_Object):
         colors = ["red", "green", "blue", "cyan"]
         profile = ThreadProfile(self.major_diameter, self.pitch)
         helix_list = []
-        for (radius, z_offset) in profile:
+        for (diameter, z_offset) in profile:
+            radius = diameter / 2.0
             angle_step = (2 * math.pi) / self.resolution
-            phase = int((-z_offset / self.pitch) * self.resolution) * angle_step
+            quantize = int((-z_offset / self.pitch) * self.resolution)
+            phase = quantize * angle_step
             offset = (0, 0, z_offset)
-            #offset = (0, 0, 0)
             helix = Helix(radius, self.pitch, self.length, phase=phase, offset=offset, resolution=self.resolution)
             helix_list.append(helix)
         helix_list = helix_list
         screw = self.build_screw(helix_list)
-        debug = [Color(colorname=color)(helix.debug()) for (color, helix) in zip(colors, helix_list)]
+        debug = []
+        #debug = [Color(colorname=color)(helix.debug()) for (color, helix) in zip(colors, helix_list)]
         debug.append(screw)
         debug = Union()(*debug)
         return debug
