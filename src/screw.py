@@ -18,10 +18,11 @@ class Helix(object):
     def apply_limits(self, xyz):
         ret = []
         for (val, _min, _max) in zip(xyz, self.min_limit, self.max_limit):
-            val = _min if (_min != None and _min > val) else val
-            val = _max if (_max != None and _max < val) else val
-            ret.append(val)
-        return tuple(ret)
+            if _min != None and val < _min:
+                return False
+            if _max != None and val > _max:
+                return False
+        return True
 
     def step_offset(self, other):
         angle_step = (2 * math.pi) / self.resolution
@@ -46,7 +47,9 @@ class Helix(object):
             x = self.radius * math.cos(angle) + xo
             y = self.radius * math.sin(angle) + yo
             z = pitch_step * angle + zo
-            yield self.apply_limits((x, y, z))
+            if not self.apply_limits((x, y, z)):
+                continue
+            yield (x, y, z)
 
 class ThreadProfile(object):
     def __init__(self, major_diameter, pitch):
@@ -105,6 +108,7 @@ class Screw(SCAD_Object):
     pitch = 1.27
     length = pitch * 5
     resolution = 20
+    debug = False
 
     def prepare_helix_list(self, hlist):
         points = []
@@ -175,38 +179,28 @@ class Screw(SCAD_Object):
                         faces.append(face)
         return Polyhedron(points=points, faces=faces)
 
+    def scad_debug(self, helix_list):
+        colors = ["red", "green", "blue", "cyan"]
+        debug = [Color(colorname=color)(helix.debug()) for (color, helix) in zip(colors, helix_list)]
+        debug = Union()(*debug)
+        return debug
+
     def scad(self):
         profile = ThreadProfile(self.major_diameter, self.pitch)
         min_limit = (None, None, 0)
         max_limit = (None, None, self.length)
         length = self.length + self.pitch * 2
         helix_list = []
-        for (radius, z_offset) in profile:
+        for (diameter, z_offset) in profile:
+            radius = diameter / 2.0
             offset = (0, 0, z_offset - self.pitch)
             helix = Helix(radius, self.pitch, length, offset=offset, min_limit=min_limit, max_limit=max_limit)
             helix_list.append(helix)
-        return self.build_screw(helix_list)
-    
-    def debug(self):
-        colors = ["red", "green", "blue", "cyan"]
-        profile = ThreadProfile(self.major_diameter, self.pitch)
-        helix_list = []
-        for (diameter, z_offset) in profile:
-            radius = diameter / 2.0
-            angle_step = (2 * math.pi) / self.resolution
-            quantize = int((-z_offset / self.pitch) * self.resolution)
-            phase = quantize * angle_step
-            offset = (0, 0, z_offset)
-            helix = Helix(radius, self.pitch, self.length, phase=phase, offset=offset, resolution=self.resolution)
-            helix_list.append(helix)
-        helix_list = helix_list
         screw = self.build_screw(helix_list)
-        debug = []
-        #debug = [Color(colorname=color)(helix.debug()) for (color, helix) in zip(colors, helix_list)]
-        debug.append(screw)
-        debug = Union()(*debug)
-        return debug
-
-s = Screw()
-s = s.debug()
+        if self.debug:
+            debug = self.scad_debug(helix_list)
+            screw = Union()(screw, debug)
+        return screw
+    
+s = Screw(debug=True)
 s.render("helix.scad")
