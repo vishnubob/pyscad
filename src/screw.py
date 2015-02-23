@@ -95,16 +95,16 @@ class DistanceSelect(list):
 
     def nearest(self, pt1):
         def distance_sort(this, that):
-            return cmp(this[1], that[1])
-        distance = [(idx, self.euclidean_distance(pt1, pt2)) for (idx, pt2) in enumerate(self)]
+            return cmp(this[2], that[2])
+        distance = [(pt2, idx, self.euclidean_distance(pt1, pt2)) for (idx, pt2) in enumerate(self)]
         distance.sort(distance_sort)
         return distance[0]
 
 class Screw(SCAD_Object):
     major_diameter = 6.35
-    #pitch = 1.27
-    pitch = 5
-    length = pitch
+    pitch = 1.27
+    length = pitch * 5
+    resolution = 20
 
     def prepare_helix_list(self, hlist):
         points = []
@@ -129,55 +129,17 @@ class Screw(SCAD_Object):
             offset = helix["offset"]
             next_offset = next_helix["offset"]
             prev_offset = prev_helix["offset"]
-            for (idx, pt) in enumerate(helix["points"][:-1]):
-                (next_idx, distance) = next_helix["select"].nearest(pt)
-                face = (idx + offset, idx + offset + 1, next_idx + next_offset)
-                faces.append(face)
-        return Polyhedron(points=points, faces=faces)
-
-    def _build_screw(self, helix_list):
-        points = []
-        helix_offset_map = {}
-        for helix in helix_list:
-            helix_offset_map[helix] = len(points)
-            points.extend(list(helix))
-        faces = []
-        helix = helix_list[0]
-        point_count = len(helix)
-        resolution = helix.resolution
-        for (hidx, helix) in enumerate(helix_list):
-            next_helix = helix_list[(hidx + 1) % len(helix_list)]
-            previous_helix = helix_list[(hidx - 1) % len(helix_list)]
-            offset = helix_offset_map[helix]
-            next_helix_offset = helix.step_offset(next_helix) + helix_offset_map[next_helix]
-            previous_helix_offset = helix.step_offset(previous_helix) + helix_offset_map[previous_helix] - 1
-            for idx in range(point_count):
-                if helix != helix_list[0]:
-                    continue
-                if helix != helix_list[-1]:
-                    if idx < (point_count - 1) and (idx + next_helix_offset) < helix_offset_map[next_helix] + point_count:
-                        face = (idx + offset, idx + offset + 1, idx + next_helix_offset)
+            for (idx, pt) in enumerate(helix["points"]):
+                if idx < (len(helix["points"]) - 1):
+                    (next_pt, next_idx, distance) = next_helix["select"].nearest(pt)
+                    if next_pt[2] > pt[2]:
+                        face = (idx + offset, idx + offset + 1, next_idx + next_offset)
                         faces.append(face)
-                else:
-                    if (idx + next_helix_offset + resolution) < point_count:
-                        face = (idx + offset, idx + offset + 1, idx + next_helix_offset + resolution)
-                        #faces.append(face)
-                if helix == helix_list[0]:
-                    if (idx + previous_helix_offset - resolution) > 0:
-                        face = (idx + offset, idx + offset - 1, idx + previous_helix_offset - resolution + 8)
+                if idx > 0:
+                    (prev_pt, prev_idx, distance) = prev_helix["select"].nearest(pt)
+                    if prev_pt[2] < pt[2]:
+                        face = (idx + offset, idx + offset - 1, prev_idx + prev_offset)
                         faces.append(face)
-                elif idx > 0:
-                    if (idx + previous_helix_offset >= helix_offset_map[previous_helix]):
-                        face = (idx + offset, idx + offset - 1, idx + previous_helix_offset)
-                        #faces.append(face)
-        """
-        points.append((0, 0, self.length))
-        endpoint = len(points) - 1
-        for idx in range(resolution):
-            offset = len(helix_list) * point_count - resolution + idx
-            face = (offset - 1, offset, endpoint)
-            faces.append(face)
-        """
         return Polyhedron(points=points, faces=faces)
 
     def scad(self):
@@ -197,11 +159,13 @@ class Screw(SCAD_Object):
         profile = ThreadProfile(self.major_diameter, self.pitch)
         helix_list = []
         for (radius, z_offset) in profile:
-            phase = (-z_offset / self.pitch) * (2 * math.pi)
+            angle_step = (2 * math.pi) / self.resolution
+            phase = int((-z_offset / self.pitch) * self.resolution) * angle_step
             offset = (0, 0, z_offset)
-            helix = Helix(radius, self.pitch, self.length, phase=phase, offset=offset)
+            #offset = (0, 0, 0)
+            helix = Helix(radius, self.pitch, self.length, phase=phase, offset=offset, resolution=self.resolution)
             helix_list.append(helix)
-        helix_list = helix_list[:2]
+        helix_list = helix_list
         screw = self.build_screw(helix_list)
         debug = [Color(colorname=color)(helix.debug()) for (color, helix) in zip(colors, helix_list)]
         debug.append(screw)
