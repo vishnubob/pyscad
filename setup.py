@@ -19,6 +19,7 @@ sctk = {
         "scad.utils", 
         "scad.vector", 
         "scad.threads", 
+        "scad.gear", 
         "scad.text", 
         "scad.drill", 
         "scad.drill_sizes", 

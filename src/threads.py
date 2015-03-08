@@ -1,5 +1,11 @@
 import math
-from scad import *
+from . core import *
+from . color import *
+from . primitives import *
+
+__all__ = [
+    "Threads",
+]
 
 class Helix(object):
     def __init__(self, radius, pitch, height, resolution=20, offset=(0, 0, 0), phase=0, min_limit=(None, None, None), max_limit=(None, None, None)):
@@ -103,12 +109,14 @@ class DistanceSelect(list):
         distance.sort(distance_sort)
         return distance[0]
 
-class Screw(SCAD_Object):
-    major_diameter = 6.35
-    pitch = 1.27
-    length = pitch * 5
-    resolution = 20
-    debug = False
+class Threads(SCAD_Object):
+    Defaults = {
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
+        "diameter": {"type": float, "default": 1},
+        "height": {"type": float, "default": 1},
+        "pitch": {"type": float, "default": 1},
+        "debug": {"type": bool, "default":  False},
+    }
 
     def prepare_helix_list(self, hlist):
         points = []
@@ -136,7 +144,7 @@ class Screw(SCAD_Object):
         bottom_idx = len(points)
         points.append((0, 0, 0))
         top_idx = len(points)
-        points.append((0, 0, self.length))
+        points.append((0, 0, self.height))
         faces = []
         for (hidx, helix) in enumerate(helix_list):
             next_helix = helix_list[(hidx + 1) % len(helix_list)]
@@ -158,10 +166,10 @@ class Screw(SCAD_Object):
                             previous_pt = helix["points"][idx - 1]
                             (next_pt, next_idx, distance) = next_helix["select"].nearest(previous_pt)
                             face = (idx + offset, next_idx + next_offset, top_idx)
-                            #self.snap_face(points, face, self.length)
+                            #self.snap_face(points, face, self.height)
                             faces.append(face)
                         face = (idx + offset + 1, idx + offset, top_idx)
-                        #self.snap_face(points, face, self.length)
+                        #self.snap_face(points, face, self.height)
                         faces.append(face)
                 if idx > 0:
                     (prev_pt, prev_idx, distance) = prev_helix["select"].nearest(pt)
@@ -186,21 +194,19 @@ class Screw(SCAD_Object):
         return debug
 
     def scad(self):
-        profile = ThreadProfile(self.major_diameter, self.pitch)
+        profile = ThreadProfile(self.diameter, self.pitch)
         min_limit = (None, None, 0)
-        max_limit = (None, None, self.length)
-        length = self.length + self.pitch * 2
+        max_limit = (None, None, self.height)
+        height = self.height + self.pitch * 2
         helix_list = []
+        resolution = self.resolution.get_fragments(self.height)
         for (diameter, z_offset) in profile:
             radius = diameter / 2.0
             offset = (0, 0, z_offset - self.pitch)
-            helix = Helix(radius, self.pitch, length, offset=offset, min_limit=min_limit, max_limit=max_limit)
+            helix = Helix(radius, self.pitch, height, resolution=resolution, offset=offset, min_limit=min_limit, max_limit=max_limit)
             helix_list.append(helix)
         screw = self.build_screw(helix_list)
         if self.debug:
             debug = self.scad_debug(helix_list)
             screw = Union()(screw, debug)
         return screw
-    
-s = Screw(debug=True)
-s.render("helix.scad")

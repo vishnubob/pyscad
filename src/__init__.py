@@ -8,6 +8,8 @@ from color import *
 from vector import *
 from geometry import *
 from text import *
+from threads import *
+from gear import *
 import drill_sizes
 
 def configure_logger(name=None, debug=False):
