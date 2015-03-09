@@ -12,7 +12,7 @@ __all__ = [
 class BaseGear(object):
     Formulas = {
         "diametral_pitch": ["number_of_teeth / float(pitch_diameter)", "math.pi / circular_pitch", "(number_of_teeth + 2.0) * outside_diameter"],
-        "pitch_diameter": ["number_of_teeth / diametral_pitch"],
+        "pitch_diameter": ["number_of_teeth / diametral_pitch", "module * number_of_teeth"],
         "outside_diameter": ["(number_of_teeth + 2) / diametral_pitch", "(pitch_diameter + 2) / diamteral_pitch"],
         "number_of_teeth": ["pitch_diametr * diametral_pitch"],
         "addendum": ["1.0 / (pitch_diameter * diametral_pitch)"],
@@ -68,7 +68,9 @@ class BaseGear(object):
                 except NameError:
                     pass
             if ret != None:
-                self._unresolved.remove(name)
+                # since this new value might help us resolve pending 
+                # items, clear all unresolved variables
+                self._unresolved.clear()
                 return ret
         raise NameError, "Name '%s' requires more information to resolve." % name
 
