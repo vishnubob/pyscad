@@ -295,6 +295,20 @@ class Sphere(SCAD_Primitive):
         self.radius = dia / 2.0
     diameter = property(get_diamater, set_diamater)
 
+class Import(SCAD_Primitive):
+    SCAD_Name = "import"
+    Defaults = {
+        "filename": {"type": str, "default": ''},
+        "convexity": {"type": int, "default": None},
+    }
+
+    def get_scad_args(self):
+        scad = []
+        scad.append('"%s"' % self.filename)
+        if self.convexity != None:
+            scad.append(("convexity", self.convexity))
+        return scad
+
 #
 # auto generate __all__
 #

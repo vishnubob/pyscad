@@ -152,6 +152,7 @@ class OpenSCAD(SCAD_Primitive):
         elif self.version:
             cmd.append("--version")
         else:
+            cmd.append(self.input)
             # everything else
             if self.output:
                 cmd.extend(("-o", self.output))
@@ -177,7 +178,6 @@ class OpenSCAD(SCAD_Primitive):
                 cmd.append("--preview")
             if self.csglimit:
                 cmd.append("--csglimit=%s" % self.csglimit)
-            cmd.append(self.input)
         return str.join(' ', cmd)
 
     # preview
