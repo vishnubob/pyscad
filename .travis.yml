@@ -6,8 +6,9 @@ before_install:
     - date -u
     - uname -a
     - lsb_release -a
+    - sudo add-apt-repository ppa:openscad/releases -y
     - sudo apt-get -qq update
-    - sudo apt-get install openscad libfreetype6-dev
+    - sudo apt-get -qq install openscad libfreetype6-dev
 install:
     - python setup.py install
 script:
