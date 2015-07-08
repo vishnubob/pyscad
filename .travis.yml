@@ -9,7 +9,7 @@ before_install:
     - sudo apt-get -qq update
     - sudo apt-get -qq install openscad libfreetype6-dev xvfb
 install:
-    - pip install coveralls
+    - pip install coveralls coverage
     - python setup.py install
 script:
     - Xvfb :5 -screen 0 800x600x24 &
