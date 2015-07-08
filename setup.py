@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-#from setuputils import setup
-from distutils.core import setup
+from setuptools import setup
 
 sctk = {
     "name": "scad",
@@ -9,6 +8,10 @@ sctk = {
     "author":"Giles Hall",
     "packages": ["scad"],
     "package_dir": {"scad": "src"},
+    "install_requires": [
+        "pint", 
+        "freetype-py"
+    ],
     "py_modules":[
         "scad.__init__", 
         "scad.base", 
