@@ -12,3 +12,4 @@ tags
 *.stl
 ._*
 *egg-info*
+.*.sw?
