@@ -20,3 +20,6 @@ rods.render("rods.png")
 rods.render("rods.stl")
 ```
 
+The result generates this image:
+
+![rods example image](https://raw.githubusercontent.com/vishnubob/pyscad/master/docs/images/rods.png)
