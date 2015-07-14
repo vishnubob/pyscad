@@ -1,6 +1,0 @@
-<a href="https://travis-ci.org/vishnubob/pyscad"><img src="https://travis-ci.org/vishnubob/pyscad.svg?branch=master" alt='Build Statis' /></a>
-<a href='https://coveralls.io/github/vishnubob/pyscad?branch=master'><img src='https://coveralls.io/repos/vishnubob/pyscad/badge.svg?branch=master&service=github' alt='Coverage Status' /></a>
-
-==pyscad==
-
-This library is a python wrapper for the SCAD language, making it easy to express legal OpenSCAD geometry with python.

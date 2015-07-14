@@ -10,3 +10,5 @@ tags
 *.svg
 *.gcode
 *.stl
+._*
+*egg-info*
