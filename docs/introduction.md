@@ -5,7 +5,6 @@ PySCAD is a python library that wraps the OpenSCAD language.  It simplifies the 
 <!-- %EXAMPLE% rods --> 
 ```
 from scad import *
-import math
 
 rod = Cylinder(diameter=2, height=20, fn=20, center=True)
 rod = Rotate(x=90)(rod)
