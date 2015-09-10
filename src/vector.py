@@ -54,13 +54,16 @@ class BaseVector(BaseObject):
         return self.__class__([operator.mult(v1, other) for v1 in self])
 
     def magnitude(self):
-        return pow(sum([pow(val, len(self.Axes)) for val in self]), 1.0 / len(self.Axes))
+        return sum([val ** len(self.Axes) for val in self]) ** (1.0 / len(self.Axes))
     
     def distance(self, other):
-        return math.sqrt(sum([pow(a1 - a2, 2) for (a1, a2) in zip(self, other)]))
+        return math.sqrt(sum([(a1 - a2) ** 2 for (a1, a2) in zip(self, other)]))
 
     def dotproduct(self, other):
         return sum([self[axis] * other[axis] for axis in self.Axes])
+
+    def norm(self):
+        return sum([i ** 2 for i in self]) ** .5
 
     def crossproduct(self, other):
         new_vector = {}
