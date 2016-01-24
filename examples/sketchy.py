@@ -136,9 +136,11 @@ def render(obj, fn):
     _obj = SCAD_Globals(fn=20)(obj)
     _obj.render(_fn)
     _fn = fn + '.stl'
+    """
     if not os.path.exists(_fn):
         _obj = SCAD_Globals(fn=50)(obj)
         _obj.render(_fn)
+    """
 
 pulley = Pulley()
 render(pulley, "pulley")

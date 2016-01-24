@@ -3,7 +3,7 @@
 from setuptools import setup
 
 sctk = {
-    "name": "PySCAD",
+    "name": "python-scad",
     "description": "Python based OpenSCAD framework",
     "author":"Giles Hall",
     "author_email": "giles@polymerase.org",
@@ -23,21 +23,6 @@ sctk = {
     ],
     "url": "https://github.com/vishnubob/pyscad",
     "download_url": "https://github.com/vishnubob/pyscad/archive/v0.1.zip",
-    "py_modules":[
-        "scad.__init__", 
-        "scad.base", 
-        "scad.color", 
-        "scad.colornames",
-        "scad.core", 
-        "scad.geometry", 
-        "scad.utils", 
-        "scad.vector", 
-        "scad.threads", 
-        "scad.gear", 
-        "scad.text", 
-        "scad.drill", 
-        "scad.drill_sizes", 
-    ],
     "version": "0.1",
 }
 

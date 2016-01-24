@@ -252,6 +252,9 @@ class BaseObject(object):
         if type(key) in (str, unicode):
             if '.' in key:
                 return self.resolve(key)
+            for child in self.iter_children():
+                if child.__name__ == key:
+                    return child
             return super(BaseObject, self).__getattribute__(key)
         else:
             # XXX: only return the first key
