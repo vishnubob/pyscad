@@ -8,6 +8,13 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["SCAD_Object"]
 
+__name_index__ = {}
+def get_name_with_index(name):
+    idx = __name_index__.get(name, 1)
+    __name_index__[name] = idx + 1
+    return "%s_%s" % (name, idx)
+
+
 class BaseObjectMetaclass(type):
     def __new__(cls, name, bases, ns):
         ns["Defaults"] = ns.get("Defaults", {})
@@ -129,6 +136,8 @@ class BaseObject(object):
     def __init__(self, **kw):
         super(BaseObject, self).__init__()
         self.__namespace__ = {}
+        if not kw.get("name", None):
+            kw["name"] = get_name_with_index(self.__class__.__name__)
         self.__kw__ = kw
         rem_kw = self.process_reserved_names(kw)
         self.__namespace__ = self.process_defaults()
@@ -320,3 +329,11 @@ class BaseObject(object):
         self.update(self.__stack__.pop())
         if descend:
             self.apply_children(lambda c: c.pop())
+
+    # name
+    def get_name(self):
+        return self.__name__
+
+    def set_name(self, name):
+        self.__name__ = name
+    name = property(get_name, set_name)
