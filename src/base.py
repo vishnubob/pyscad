@@ -14,7 +14,6 @@ def get_name_with_index(name):
     __name_index__[name] = idx + 1
     return "%s_%s" % (name, idx)
 
-
 class BaseObjectMetaclass(type):
     def __new__(cls, name, bases, ns):
         ns["Defaults"] = ns.get("Defaults", {})
