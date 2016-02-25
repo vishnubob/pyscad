@@ -139,6 +139,29 @@ class Arc(SCAD_Object):
         self.outer.height = height
     height = property(get_height, set_height)
 
+class RoundedCube(SCAD_Object):
+    Aliases = {
+        'x': 'size.x',
+        'y': 'size.y',
+        'z': 'size.z',
+    }
+    Defaults = {
+        "size": {"type": Vector3D, "default": lambda: Vector3D([1.0, 1.0, 1.0])},
+        "radius": {"type": float, "default": 1.0},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
+    }
+
+    def scad(self):
+        corner = Circle(r=self.radius, resolution=self.resolution)
+        hx = self.size.x / 2.0
+        hy = self.size.y / 2.0
+        corner_1 = Translate(x=-hx + self.radius, y=-hy + self.radius)(corner)
+        corner_2 = Translate(x=hx - self.radius, y=-hy + self.radius)(corner)
+        corner_3 = Translate(x=-hx + self.radius, y=hy - self.radius)(corner)
+        corner_4 = Translate(x=hx - self.radius, y=hy - self.radius)(corner)
+        base = Hull()(corner_1, corner_2, corner_3, corner_4)
+        return LinearExtrude(h=self.size.z)(base)
+
 class Octohedron(SCAD_Object):
     Defaults = {
         "height": {"type": float, "default": 1.0},

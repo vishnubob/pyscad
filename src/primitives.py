@@ -295,6 +295,30 @@ class Sphere(SCAD_Primitive):
         self.radius = dia / 2.0
     diameter = property(get_diamater, set_diamater)
 
+class Circle(SCAD_Primitive):
+    SCAD_Name = "circle"
+    Aliases = {
+        'fn': 'resolution.fn',
+        'fa': 'resolution.fa',
+        'fs': 'resolution.fs',
+    }
+    Defaults = {
+        "radius": {"type": float, "default": 1.0},
+        "resolution": {"type": RadialResolution, "default": lambda: RadialResolution(), "propagate": True},
+    }
+
+    def get_scad_args(self):
+        scad = []
+        scad.append(("r", self.radius))
+        scad += self.resolution.get_scad_args()
+        return scad
+
+    def get_diamater(self):
+        return self.radius * 2
+    def set_diamater(self, dia):
+        self.radius = dia / 2.0
+    diameter = property(get_diamater, set_diamater)
+
 class Import(SCAD_Primitive):
     SCAD_Name = "import"
     Defaults = {
